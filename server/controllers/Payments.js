@@ -177,29 +177,6 @@ exports.sendPaymentSuccessEmail = async (req, res) => {
   }
 }
 
-/* ================= GET ENROLLED COURSES ================= */
-// exports.getEnrolledCourses = async (req, res) => {
-//   try {
-//     const userId = req.user.id
-
-//     const user = await User.findById(userId)
-//       .populate("courses")   // 🔥 NO FILTERS
-//       .exec()
-
-//     console.log("🟢 USER COURSES FROM DB:", user.courses)
-
-//     return res.status(200).json({
-//       success: true,
-//       data: user.courses || [],
-//     })
-//   } catch (error) {
-//     console.error("❌ getEnrolledCourses error:", error)
-//     return res.status(500).json({
-//       success: false,
-//       message: error.message,
-//     })
-//   }
-// }
 
 
 /* ================= ENROLL STUDENTS ================= */
