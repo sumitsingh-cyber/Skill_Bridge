@@ -2,7 +2,7 @@
 
 A modern, full-stack ed-tech platform that empowers learners and instructors to connect, create, and grow together.
 
-**Live Demo:** [https://agent-698b7772839f4822a99--candid-hotteok-623f72.netlify.app/](https://skill-bridge-l4na.vercel.app/)
+**Live Demo:** [https://skill-bridge-l4na.vercel.app/](https://skill-bridge-l4na.vercel.app/)
 
 ---
 
@@ -479,3 +479,4 @@ For support, email us at `info@SkillBridge.com` or raise an issue on GitHub.
 
 
 **Happy Learning! 🚀**
+
