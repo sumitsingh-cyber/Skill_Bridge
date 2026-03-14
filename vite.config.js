@@ -11,4 +11,12 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
   },
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+      },
+    },
+  },
 })
