@@ -1,3 +1,6 @@
+// Load environment variables FIRST — before any other imports
+require("dotenv").config();
+
 const express = require("express");
 const app = express();
 
@@ -14,20 +17,35 @@ const fileUpload = require("express-fileupload");
 
 const PORT = process.env.PORT || 4000;
 
-
-// Connect DB
+// Connect DB (with retry logic)
 database.connect();
 
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
+
+// CORS — works for both localhost dev and deployed frontend
+const allowedOrigins = [
+  "http://localhost:5173",   // Vite local dev
+  "http://localhost:4173",   // Vite local preview
+  "http://localhost:5175",   // Vite fallback port
+];
+
+// Add production frontend URL if set (set this in Render dashboard)
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",                    // local dev (Vite default)
-      "http://localhost:4173",                    // local preview (vite preview)
-      process.env.FRONTEND_URL,                  // set this in Render dashboard to your Vercel URL
-    ].filter(Boolean),
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, Postman, curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error(`CORS: Origin ${origin} not allowed`));
+    },
     credentials: true,
   })
 );
@@ -48,14 +66,26 @@ app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 
-app.get("/", (req, res) => {
+// Health check — useful for Render uptime checks
+app.get("/health", (req, res) => {
   res.json({
     success: true,
-    message: "Backend running on Vercel 🚀",
+    message: "SkillBridge backend is running ✅",
+    environment: process.env.NODE_ENV || "development",
+    timestamp: new Date().toISOString(),
   });
 });
 
-// Always listen — required for Render and other hosting platforms
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "SkillBridge API is live 🚀",
+  });
+});
+
+// Always listen — required for Render and all hosting platforms
 app.listen(PORT, () => {
-  console.log(`Server is running on PORT ${PORT}`);
+  console.log(`[Server] Running on PORT ${PORT}`);
+  console.log(`[Server] Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`[Server] Health check: http://localhost:${PORT}/health`);
 });
