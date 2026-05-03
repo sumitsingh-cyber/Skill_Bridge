@@ -14,6 +14,7 @@ const fileUpload = require("express-fileupload");
 
 const PORT = process.env.PORT || 4000;
 
+
 // Connect DB
 database.connect();
 
@@ -22,7 +23,11 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: true,
+    origin: [
+      "http://localhost:5173",                    // local dev (Vite default)
+      "http://localhost:4173",                    // local preview (vite preview)
+      process.env.FRONTEND_URL,                  // set this in Render dashboard to your Vercel URL
+    ].filter(Boolean),
     credentials: true,
   })
 );
@@ -50,11 +55,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// Local only
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`Server running at ${PORT}`);
-  });
-}
-
-module.exports = app;
+// Always listen — required for Render and other hosting platforms
+app.listen(PORT, () => {
+  console.log(`Server is running on PORT ${PORT}`);
+});
