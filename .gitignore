@@ -12,12 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Environment variables - never commit these
-.env
-.env.*
-!.env.example
-
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -29,3 +23,15 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Environment files — never commit secrets
+.env
+.env.local
+server/.env
+server/.env.local
+
+# Allow production env (no secrets, just public API URL)
+!.env.production
+
+# PowerShell scripts (dev only)
+server/push-env.ps1
