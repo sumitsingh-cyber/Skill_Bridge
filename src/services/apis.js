@@ -1,4 +1,5 @@
-const BASE_URL = import.meta.env.MODE === "production" ? "/api/v1" : (import.meta.env.VITE_API_URL || "http://localhost:4000/api/v1");
+const BASE_URL = window.location.origin.includes("localhost") ? "http://localhost:4000/api/v1" : "/api/v1";
+
 
 // AUTH ENDPOINTS
 export const endpoints = {
