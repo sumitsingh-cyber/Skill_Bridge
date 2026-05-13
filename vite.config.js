@@ -10,11 +10,20 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['react-icons', 'react-hot-toast', 'chart.js', 'react-chartjs-2'],
+        },
+      },
+    },
   },
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5000",
+        target: "http://localhost:4000",
         changeOrigin: true,
       },
     },
