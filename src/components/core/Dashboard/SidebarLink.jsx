@@ -8,7 +8,7 @@ export default function SidebarLink({ link, iconName }) {
   const dispatch = useDispatch()
 
   // Safely resolve icon
-  const Icon = Icons[iconName] ?? Icons.VscCircleLargeOutline
+  const Icon = Icons[iconName] ?? Icons.VscCircle
 
   return (
     <NavLink
