@@ -32,3 +32,5 @@ services:
         sync: false
       - key: RAZORPAY_SECRET
         sync: false
+      - key: RESEND_API_KEY
+        sync: false

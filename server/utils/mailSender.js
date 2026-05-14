@@ -1,24 +1,32 @@
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 require("dotenv").config();
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
+/**
+ * Sends an email using Gmail SMTP (Nodemailer).
+ * Gmail supports sending to ANY recipient, unlike Resend's free tier
+ * which only allows sending to the verified account email.
+ */
 const mailSender = async (email, title, body) => {
   try {
-    const { data, error } = await resend.emails.send({
-      from: "SkillBridge <onboarding@resend.dev>",
-      to: [email],
+    const transporter = nodemailer.createTransport({
+      host: process.env.MAIL_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.MAIL_PORT) || 587,
+      secure: false, // TLS via STARTTLS on port 587
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS, // Gmail App Password (not your login password)
+      },
+    });
+
+    const info = await transporter.sendMail({
+      from: `"SkillBridge" <${process.env.MAIL_USER}>`,
+      to: email,
       subject: title,
       html: body,
     });
 
-    if (error) {
-      console.log("Resend error:", error);
-      throw new Error(error.message || JSON.stringify(error));
-    }
-
-    console.log("Email sent via Resend:", data.id);
-    return data;
+    console.log("Email sent via Nodemailer:", info.messageId);
+    return info;
   } catch (error) {
     console.log("mailSender error:", error.message);
     throw error;
