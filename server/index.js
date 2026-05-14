@@ -51,11 +51,13 @@ app.get("/", (req, res) => {
   });
 });
 
-// Local only
-if (process.env.NODE_ENV !== "production") {
+// Start server (always listen - needed for Render/Railway/local)
+// On Vercel serverless, module.exports = app is used instead
+if (process.env.VERCEL !== "1") {
   app.listen(PORT, () => {
     console.log(`Server running at ${PORT}`);
   });
 }
 
 module.exports = app;
+
