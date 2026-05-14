@@ -1,44 +1,45 @@
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 require("dotenv").config();
 
 /**
- * Sends an email via Resend API.
+ * Sends an email via Gmail SMTP using Nodemailer.
  *
- * Why Resend instead of Nodemailer:
- *   Render's free tier blocks outbound SMTP ports (25, 465, 587),
- *   so Nodemailer cannot connect. Resend uses HTTPS API calls instead.
- *
- * Why new Resend() is inside the function:
- *   On Render, env vars are injected at runtime. If the client is created
- *   at module load time (top-level), RESEND_API_KEY may still be undefined.
- *   Creating it lazily ensures the key is always available.
+ * Uses MAIL_USER and MAIL_PASS (Gmail App Password) from environment variables.
+ * Port 465 with SSL is used because Render's free tier blocks port 587 (STARTTLS)
+ * but allows 465. Gmail SMTP sends to ANY recipient email address.
  */
 const mailSender = async (email, title, body) => {
-  const apiKey = process.env.RESEND_API_KEY;
+  const mailUser = process.env.MAIL_USER;
+  const mailPass = process.env.MAIL_PASS;
 
-  if (!apiKey) {
-    const msg = "RESEND_API_KEY is not set in environment variables";
+  if (!mailUser || !mailPass) {
+    const msg = "MAIL_USER or MAIL_PASS is not set in environment variables";
     console.error(msg);
     throw new Error(msg);
   }
 
-  const resend = new Resend(apiKey);
+  // Port 465 + secure:true = SSL (works on Render free tier)
+  // Port 587 + secure:false = STARTTLS (blocked on Render free tier)
+  const transporter = nodemailer.createTransport({
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // SSL
+    auth: {
+      user: mailUser,
+      pass: mailPass,
+    },
+  });
 
   try {
-    const { data, error } = await resend.emails.send({
-      from: "SkillBridge <onboarding@resend.dev>",
-      to: [email],
+    const info = await transporter.sendMail({
+      from: `"SkillBridge" <${mailUser}>`,
+      to: email,
       subject: title,
       html: body,
     });
 
-    if (error) {
-      console.error("Resend API error:", JSON.stringify(error));
-      throw new Error(error.message || JSON.stringify(error));
-    }
-
-    console.log("Email sent via Resend, id:", data.id, "to:", email);
-    return data;
+    console.log("Email sent via Gmail SMTP, messageId:", info.messageId, "to:", email);
+    return info;
   } catch (error) {
     console.error("mailSender threw:", error.message);
     throw error;
