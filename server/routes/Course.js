@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { createSection, updateSection, deleteSection } = require("../controllers/Section");
-const { createSubSection, updateSubSection, deleteSubSection } = require("../controllers/SubSection");
+const { createSubSection, updateSubSection, deleteSubSection } = require("../controllers/Subsection");
 
 
 // ================= Middlewares ================= //
