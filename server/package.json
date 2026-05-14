@@ -28,6 +28,7 @@
     "nodemon": "^3.1.11",
     "otp-generator": "^4.0.1",
     "razorpay": "^2.9.6",
+    "resend": "^6.12.3",
     "serverless-http": "^4.0.0"
   }
 }

@@ -1,33 +1,27 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 require("dotenv").config();
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const mailSender = async (email, title, body) => {
   try {
-    let transporter = nodemailer.createTransport({
-      host: process.env.MAIL_HOST || "smtp.gmail.com",
-      port: 465,
-      secure: true, // true for 465, false for 587
-      auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS,
-      },
-      connectionTimeout: 10000, // 10 seconds — fail fast instead of hanging
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
+    const { data, error } = await resend.emails.send({
+      from: "SkillBridge <onboarding@resend.dev>",
+      to: [email],
+      subject: title,
+      html: body,
     });
 
-    let info = await transporter.sendMail({
-      from: `"SkillBridge" <${process.env.MAIL_USER}>`,
-      to: `${email}`,
-      subject: `${title}`,
-      html: `${body}`,
-    });
+    if (error) {
+      console.log("Resend error:", error);
+      throw new Error(error.message || JSON.stringify(error));
+    }
 
-    console.log("Email sent:", info.messageId);
-    return info;
+    console.log("Email sent via Resend:", data.id);
+    return data;
   } catch (error) {
     console.log("mailSender error:", error.message);
-    throw error; // re-throw so callers know it failed
+    throw error;
   }
 };
 
