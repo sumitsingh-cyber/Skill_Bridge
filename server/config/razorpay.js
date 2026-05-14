@@ -1,7 +1,16 @@
-const Razorpay  =require("razorpay");
-require("dotenv").config();
+const Razorpay = require("razorpay");
 
-exports.instance = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY,
-    key_secret: process.env.RAZORPAY_SECRET,
-});
+let instance;
+
+exports.getInstance = () => {
+  if (!instance) {
+    if (!process.env.RAZORPAY_KEY || !process.env.RAZORPAY_SECRET) {
+      throw new Error("RAZORPAY_KEY and RAZORPAY_SECRET env vars are required");
+    }
+    instance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY,
+      key_secret: process.env.RAZORPAY_SECRET,
+    });
+  }
+  return instance;
+};

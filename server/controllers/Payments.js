@@ -1,4 +1,4 @@
-const { instance } = require("../config/razorpay")
+const { getInstance } = require("../config/razorpay")
 const Course = require("../models/Course")
 const crypto = require("crypto")
 const User = require("../models/User")
@@ -55,7 +55,7 @@ exports.capturePayment = async (req, res) => {
       totalAmount += course.price
     }
 
-    const order = await instance.orders.create({
+    const order = await getInstance().orders.create({
       amount: totalAmount * 100,
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
