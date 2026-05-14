@@ -1,5 +1,5 @@
 const Schedule = require("node-schedule");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const mailSender = require("../utils/mailSender");
 const { passwordUpdated } = require("../mail/templates/passwordUpdate");
 

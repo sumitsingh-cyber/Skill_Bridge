@@ -25,5 +25,6 @@ export const apiConnector = (
       ...headers,
       ...authHeader,
     },
+    withCredentials: true,
   });
 };

@@ -1,7 +1,7 @@
 const User =require("../models/User");
 const OTP=require("../models/OTP");
 const otpGenerator =require("otp-generator"); 
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const jwt =require("jsonwebtoken");
 const Profile =require("../models/Profile");
 const mailSender=require("../utils/mailSender");
@@ -220,6 +220,8 @@ exports.login = async (req, res) => {
       const option = {
         expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
         httpOnly: true,
+        secure: true,
+        sameSite: "none",
       };
 
       return res.cookie("Token", token, option).status(200).json({
