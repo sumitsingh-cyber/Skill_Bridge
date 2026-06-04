@@ -70,25 +70,18 @@ const sendWithResend = async ({ to, subject, html, text, from }) => {
 };
 
 const createSmtpTransporter = () => {
-  const configuredHost = process.env.MAIL_HOST || "smtp.gmail.com";
-  const port = Number(process.env.MAIL_PORT || 465);
-  const user = process.env.MAIL_USER || "ankitsingh91040@gmail.com";
-  const pass = isBrevoLogin(user)
-    ? process.env.BREVO_SMTP_KEY || process.env.MAIL_PASS
-    : process.env.MAIL_PASS || process.env.BREVO_SMTP_KEY || "jden nusv mwnf chjb";
-  const host = isBrevoLogin(user) ? "smtp-relay.brevo.com" : configuredHost;
-
-  if (!user || !pass) {
-    throw new Error("SMTP is not configured. Set MAIL_USER and MAIL_PASS or BREVO_SMTP_KEY.");
-  }
+  const host = "smtp.gmail.com";
+  const port = 465;
+  const user = "ankitsingh91040@gmail.com";
+  const pass = "jdennusvmwnfchjb";
 
   return nodemailer.createTransport({
     host,
     port,
-    secure: port === 465,
+    secure: true,
     auth: {
       user,
-      pass: normalizePassword(host, pass),
+      pass,
     },
     logger: process.env.MAIL_DEBUG === "true",
     debug: process.env.MAIL_DEBUG === "true",
@@ -138,7 +131,7 @@ const sendWithSmtp = async ({ to, subject, html, text, from }) => {
 
 const mailSender = async (emailOrOptions, title, body) => {
   const input = getMailInput(emailOrOptions, title, body);
-  const from = process.env.MAIL_FROM || process.env.SMTP_FROM || process.env.MAIL_USER;
+  const from = "ankitsingh91040@gmail.com";
   const resendFrom = process.env.RESEND_FROM;
 
   if (!input.to || !input.subject || !input.html) {
