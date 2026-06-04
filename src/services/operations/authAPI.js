@@ -30,7 +30,7 @@ export function sendOtp(email, navigate) {
       toast.success("OTP Sent Successfully");
       navigate("/verify-email");
     } catch (error) {
-      toast.error("Could Not Send OTP");
+      toast.error(error?.response?.data?.message || "Could Not Send OTP");
     }
     dispatch(setLoading(false));
     toast.dismiss(toastId);

@@ -11,11 +11,18 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
     chunkSizeWarningLimit: 1000,
+    modulePreload: false,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['react-icons', 'react-hot-toast', 'chart.js', 'react-chartjs-2'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'vendor-react'
+            }
+            if (id.includes('react-icons') || id.includes('react-hot-toast') || id.includes('chart.js') || id.includes('react-chartjs-2')) {
+              return 'vendor-ui'
+            }
+          }
         },
       },
     },

@@ -1,21 +1,26 @@
 const User =require("../models/User");
 const OTP=require("../models/OTP");
-const otpGenerator =require("otp-generator"); 
 const bcrypt = require("bcryptjs");
 const jwt =require("jsonwebtoken");
+const { randomInt } = require("crypto");
 const Profile =require("../models/Profile");
 const mailSender=require("../utils/mailSender");
 const { passwordUpdated }=require("../mail/templates/passwordUpdate");
 require("dotenv").config();
 const { otpTemplate } = require("../mail/templates/emailVerificationTemplate");
 
-
-
 // send otp
 exports.sendOTP = async (req, res) => {
   try {
     // fetch email from body
-    const { email } = req.body;
+    const email = req.body.email?.trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
 
     // check if user already exists
     const checkUserPresent = await User.findOne({ email });
@@ -27,37 +32,49 @@ exports.sendOTP = async (req, res) => {
       });
     }
 
-    // generate otp
-    var otp = otpGenerator.generate(6, {
-      upperCaseAlphabets: false,
-      lowerCaseAlphabets: false,
-      specialChars: false,
-    });
-    console.log("OTP generated", otp);
+    const recentOtpRequest = await OTP.findOne({ email }).sort({ createdAt: -1 });
 
-    // ensure otp is unique
-    let result = await OTP.findOne({ otp: otp });
-    while (result) {
-      otp = otpGenerator.generate(6, {
-        upperCaseAlphabets: false,
-        lowerCaseAlphabets: false,
-        specialChars: false,
+    if (recentOtpRequest && Date.now() - recentOtpRequest.createdAt.getTime() < 60 * 1000) {
+      return res.status(429).json({
+        success: false,
+        message: "Please wait 60 seconds before requesting another OTP",
       });
-      result = await OTP.findOne({ otp: otp });
     }
 
-    // save otp to db
-    await OTP.create({ email, otp });
+    const otp = String(randomInt(100000, 1000000));
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    console.log("OTP generated for", email);
+
+    await OTP.deleteMany({ email });
+
+    // save otp
+    const otpRecord = await OTP.create({ email, otp: hashedOtp });
+
     console.log("OTP saved to DB");
 
-    // send otp email
+    const htmlContent = otpTemplate(otp);
+
+    // send email
     try {
-      await mailSender(email, "Verify Your Email", otpTemplate(otp));
+      await mailSender(
+        {
+          to: email,
+          subject: "Your SkillBridge verification code",
+          html: htmlContent,
+        }
+      );
+
+      console.log("OTP Email Sent Successfully");
+
     } catch (mailError) {
+
       console.log("Failed to send OTP email:", mailError.message);
+      await OTP.findByIdAndDelete(otpRecord._id);
+
       return res.status(500).json({
         success: false,
-        message: "Failed to send OTP email. Exact error: " + mailError.message,
+        message: "Failed to send OTP email",
       });
     }
 
@@ -65,8 +82,11 @@ exports.sendOTP = async (req, res) => {
       success: true,
       message: "OTP Sent Successfully",
     });
+
   } catch (error) {
+
     console.log(error);
+
     return res.status(500).json({
       success: false,
       message: error.message,
@@ -84,13 +104,16 @@ exports.sendOTP = async (req, res) => {
         const {
             firstName,
             lastName,
-            email,
+            email: rawEmail,
             password,
             confirmPassword,
             accountType,
             contactNumber,
             otp
         }=req.body;
+
+        const email = rawEmail?.trim().toLowerCase();
+
         //validate krlo
         if(!firstName || !lastName || !email|| !password || !confirmPassword || !otp){
             return res.status(403).json({
@@ -129,7 +152,9 @@ exports.sendOTP = async (req, res) => {
                 message:"OTP is not  Found",
             })
         }
-         if (String(otp) !== String(recentOtp[0].otp)) {
+         const isOtpValid = await bcrypt.compare(String(otp), recentOtp[0].otp);
+
+         if (!isOtpValid) {
       return res.status(400).json({
         success: false,
         message: "Invalid OTP",
@@ -162,6 +187,8 @@ exports.sendOTP = async (req, res) => {
             additionalDetails:profileDetails._id,
             Image:`http://api.dicebear.com/5.x/initials/svg?seed=${firstName}%20${lastName}`,
         })
+
+        await OTP.deleteMany({ email });
         
         // return response
         return res.status(200).json({

@@ -1,49 +1,179 @@
 const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 require("dotenv").config();
 
-/**
- * Sends email via Brevo SMTP relay (smtp-relay.brevo.com).
- *
- * WHY BREVO SMTP RELAY (not Gmail):
- *   Gmail blocks sign-ins from cloud server IPs (Render, Heroku, etc.)
- *   Brevo's dedicated relay is built for programmatic sending from servers.
- *
- * CREDENTIALS NEEDED in .env / Render env vars:
- *   BREVO_SMTP_KEY   = xsmtpsib-...  (from Brevo → SMTP & API → SMTP)
- *   MAIL_USER        = ankitsingh91040@gmail.com  (your Brevo account email)
- */
-const mailSender = async (email, title, body) => {
-  const smtpUser = process.env.MAIL_USER;
-  const smtpKey  = process.env.BREVO_SMTP_KEY;
+const htmlToText = (html = "") =>
+  html.replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 
-  if (!smtpUser || !smtpKey) {
-    const msg = "MAIL_USER or BREVO_SMTP_KEY is not set in environment variables";
-    console.error(msg);
-    throw new Error(msg);
+const isGmailHost = (host = "") => host.toLowerCase().includes("gmail");
+const isBrevoLogin = (user = "") => user.toLowerCase().includes("smtp-brevo.com");
+const isBadSenderAddress = (email = "") =>
+  !email || email.toLowerCase().includes("smtp-brevo.com");
+
+const normalizePassword = (host, password) => {
+  if (!password) {
+    return password;
   }
 
-  const transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com",
-    port: 587,
-    secure: false, // STARTTLS on port 587
+  return isGmailHost(host) ? password.replace(/\s+/g, "") : password;
+};
+
+const getMailInput = (emailOrOptions, title, body) => {
+  if (typeof emailOrOptions === "object" && emailOrOptions !== null) {
+    return {
+      to: emailOrOptions.to,
+      subject: emailOrOptions.subject,
+      html: emailOrOptions.html,
+      text: emailOrOptions.text,
+    };
+  }
+
+  return {
+    to: emailOrOptions,
+    subject: title,
+    html: body,
+  };
+};
+
+const sendWithResend = async ({ to, subject, html, text, from }) => {
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const { data, error } = await resend.emails.send({
+    from: `SkillBridge <${from}>`,
+    to,
+    subject,
+    html,
+    text: text || htmlToText(html),
+  });
+
+  if (error) {
+    throw new Error(error.message || "Resend failed to send email");
+  }
+
+  console.log("============== EMAIL DEBUG ==============");
+  console.log("Provider: Resend");
+  console.log("To:", to);
+  console.log("Message ID:", data?.id);
+  console.log("=========================================");
+
+  return {
+    provider: "resend",
+    messageId: data?.id,
+    accepted: [to],
+    rejected: [],
+    response: "Queued by Resend",
+  };
+};
+
+const createSmtpTransporter = () => {
+  const configuredHost = process.env.MAIL_HOST || "smtp-relay.brevo.com";
+  const port = Number(process.env.MAIL_PORT || 587);
+  const user = process.env.MAIL_USER;
+  const pass = isBrevoLogin(user)
+    ? process.env.BREVO_SMTP_KEY || process.env.MAIL_PASS
+    : process.env.MAIL_PASS || process.env.BREVO_SMTP_KEY;
+  const host = isBrevoLogin(user) ? "smtp-relay.brevo.com" : configuredHost;
+
+  if (!user || !pass) {
+    throw new Error("SMTP is not configured. Set MAIL_USER and MAIL_PASS or BREVO_SMTP_KEY.");
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
     auth: {
-      user: smtpUser,   // your Brevo account email
-      pass: smtpKey,    // xsmtpsib-... key
+      user,
+      pass: normalizePassword(host, pass),
+    },
+    logger: process.env.MAIL_DEBUG === "true",
+    debug: process.env.MAIL_DEBUG === "true",
+    transactionLog: process.env.MAIL_DEBUG === "true",
+  });
+};
+
+const sendWithSmtp = async ({ to, subject, html, text, from }) => {
+  const transporter = createSmtpTransporter();
+
+  const info = await transporter.sendMail({
+    from: `"SkillBridge" <${from}>`,
+    to,
+    subject,
+    text: text || htmlToText(html),
+    html,
+    envelope: {
+      from,
+      to,
     },
   });
 
-  try {
-    const info = await transporter.sendMail({
-      from: `"SkillBridge" <${smtpUser}>`,
-      to: email,
-      subject: title,
-      html: body,
-    });
+  const accepted = info.accepted || [];
+  const rejected = info.rejected || [];
 
-    console.log("Email sent via Brevo SMTP, messageId:", info.messageId, "to:", email);
-    return info;
+  console.log("============== EMAIL DEBUG ==============");
+  console.log("Provider: SMTP");
+  console.log("Accepted:", accepted);
+  console.log("Rejected:", rejected);
+  console.log("Pending:", info.pending || []);
+  console.log("Envelope:", info.envelope);
+  console.log("Response:", info.response);
+  console.log("Message ID:", info.messageId);
+  console.log("=========================================");
+
+  if (accepted.length === 0 || rejected.length > 0) {
+    throw new Error(
+      `SMTP did not accept the email. Accepted: ${accepted.join(", ") || "none"}; Rejected: ${rejected.join(", ") || "none"}`
+    );
+  }
+
+  return {
+    ...info,
+    provider: "smtp",
+  };
+};
+
+const mailSender = async (emailOrOptions, title, body) => {
+  const input = getMailInput(emailOrOptions, title, body);
+  const from = process.env.MAIL_FROM || process.env.SMTP_FROM || process.env.MAIL_USER;
+  const resendFrom = process.env.RESEND_FROM;
+
+  if (!input.to || !input.subject || !input.html) {
+    throw new Error("Email requires to, subject, and html fields.");
+  }
+
+  if (isBadSenderAddress(from)) {
+    throw new Error(
+      "MAIL_FROM is required and must be a real verified sender address, for example ankitsingh91040@gmail.com or verify@yourdomain.com. Do not use the Brevo SMTP login as MAIL_FROM."
+    );
+  }
+
+  if (process.env.RESEND_API_KEY && resendFrom && !isBadSenderAddress(resendFrom)) {
+    try {
+      return await sendWithResend({ ...input, from: resendFrom });
+    } catch (error) {
+      console.error("Resend send failed:", error.message);
+
+      if (!process.env.MAIL_USER || !(process.env.MAIL_PASS || process.env.BREVO_SMTP_KEY)) {
+        throw error;
+      }
+    }
+  }
+
+  try {
+    return await sendWithSmtp({ ...input, from });
   } catch (error) {
-    console.error("mailSender threw:", error.message);
+    const message = error?.message || "Unknown email sending error";
+
+    if (/535|BadCredentials|Username and Password not accepted/i.test(message)) {
+      throw new Error(
+        "SMTP login failed. For Gmail use a 16-character App Password; for Brevo use the SMTP login and SMTP key, not the API key."
+      );
+    }
+
     throw error;
   }
 };

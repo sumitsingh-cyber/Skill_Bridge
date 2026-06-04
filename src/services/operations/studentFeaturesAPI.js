@@ -54,13 +54,6 @@ export async function buyCourse(token, courses, userDetails, navigate, dispatch)
         console.log("PRINTING orderResponse", orderResponse);
         //options
 
-         console.log("Razorpay Key:", import.meta.env.VITE_RAZORPAY_KEY)
-console.log(
-  "🟢 Razorpay Key:",
-  import.meta.env.VITE_RAZORPAY_KEY
-)
-
-console.log("Razorpay Key:", import.meta.env.VITE_RAZORPAY_KEY)
 
 const options = {
   key: import.meta.env.VITE_RAZORPAY_KEY,
