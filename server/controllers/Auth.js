@@ -74,7 +74,7 @@ exports.sendOTP = async (req, res) => {
 
       return res.status(500).json({
         success: false,
-        message: "Failed to send OTP email",
+        message: "Failed to send OTP email. Error: " + mailError.message,
       });
     }
 
