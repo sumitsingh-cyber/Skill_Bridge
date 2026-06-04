@@ -9,7 +9,9 @@ exports.connect = async () => {
   }
   
   try {
-    const db = await mongoose.connect(process.env.MONGODB_URL);
+    const db = await mongoose.connect(
+      process.env.MONGODB_URL || "mongodb+srv://StudyNotion:vo4WltrLa3I51dZl@cluster0.jhrlfnp.mongodb.net/studynotiondb2"
+    );
     isConnected = db.connections[0].readyState;
     console.log("DB connected successfully");
   } catch (error) {

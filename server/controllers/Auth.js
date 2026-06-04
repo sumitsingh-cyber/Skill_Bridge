@@ -237,7 +237,7 @@ exports.login = async (req, res) => {
         accountType: user.accountType,
       };
 
-      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      const token = jwt.sign(payload, process.env.JWT_SECRET || "manish", {
         expiresIn: "2h",
       });
 

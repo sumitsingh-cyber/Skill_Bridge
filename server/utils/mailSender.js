@@ -70,12 +70,12 @@ const sendWithResend = async ({ to, subject, html, text, from }) => {
 };
 
 const createSmtpTransporter = () => {
-  const configuredHost = process.env.MAIL_HOST || "smtp-relay.brevo.com";
-  const port = Number(process.env.MAIL_PORT || 587);
-  const user = process.env.MAIL_USER;
+  const configuredHost = process.env.MAIL_HOST || "smtp.gmail.com";
+  const port = Number(process.env.MAIL_PORT || 465);
+  const user = process.env.MAIL_USER || "ankitsingh91040@gmail.com";
   const pass = isBrevoLogin(user)
     ? process.env.BREVO_SMTP_KEY || process.env.MAIL_PASS
-    : process.env.MAIL_PASS || process.env.BREVO_SMTP_KEY;
+    : process.env.MAIL_PASS || process.env.BREVO_SMTP_KEY || "jden nusv mwnf chjb";
   const host = isBrevoLogin(user) ? "smtp-relay.brevo.com" : configuredHost;
 
   if (!user || !pass) {
