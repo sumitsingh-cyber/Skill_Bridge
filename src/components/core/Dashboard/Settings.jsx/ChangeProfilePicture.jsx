@@ -53,16 +53,16 @@ export default function ChangeProfilePicture() {
 
   return (
     <div className="
-      flex items-center justify-between
+      flex flex-col gap-y-4 sm:flex-row sm:items-center justify-between
       rounded-2xl border border-gray-700
       bg-linear-to-br from-gray-900 via-gray-800 to-gray-900
-      p-8 px-12 text-gray-100
+      p-4 px-6 sm:p-8 sm:px-12 text-gray-100
       transition-all duration-300
       hover:shadow-xl hover:shadow-black/40
     ">
-      <div className="flex items-center gap-x-6">
+      <div className="flex flex-col gap-y-4 sm:flex-row sm:items-center gap-x-6 text-center sm:text-left">
         {/* Avatar */}
-        <div className="relative group">
+        <div className="relative group mx-auto sm:mx-0">
           <img
             src={previewSource || user?.image}
             alt={`profile-${user?.firstName}`}
@@ -88,7 +88,7 @@ export default function ChangeProfilePicture() {
             Change Profile Picture
           </p>
 
-          <div className="flex flex-row gap-3">
+          <div className="flex flex-row flex-wrap justify-center sm:justify-start gap-3">
             <input
               type="file"
               ref={fileInputRef}

@@ -45,7 +45,7 @@ export default function UpdatePassword() {
           my-10 flex flex-col gap-y-6 rounded-2xl
           border border-gray-700
           bg-linear-to-br from-gray-900 via-gray-800 to-gray-900
-          p-8 px-12
+          p-4 px-6 sm:p-8 sm:px-12
           transition-all duration-300
           hover:shadow-xl hover:shadow-black/40
         "

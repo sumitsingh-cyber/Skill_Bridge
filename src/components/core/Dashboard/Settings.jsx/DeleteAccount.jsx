@@ -20,9 +20,9 @@ export default function DeleteAccount() {
   return (
     <div
       className="
-        my-12 flex gap-x-6 rounded-2xl border border-red-800/60
+        my-12 flex flex-col gap-y-4 sm:flex-row sm:gap-x-6 rounded-2xl border border-red-800/60
         bg-linear-to-br from-red-950 via-gray-900 to-red-950
-        p-8 px-12
+        p-4 px-6 sm:p-8 sm:px-12
         transition-all duration-300
         hover:shadow-xl hover:shadow-red-900/30
       "
