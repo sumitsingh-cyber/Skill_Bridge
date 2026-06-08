@@ -8,7 +8,7 @@ import { logout } from "../../../services/operations/authAPI"
 import ConfirmationModal from "../../common/ConfirmationModal"
 import SidebarLink from "./SidebarLink"
 
-export default function Sidebar() {
+export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
   const { user, loading: profileLoading } = useSelector(
     (state) => state.profile
   )
@@ -28,7 +28,20 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className="flex h-[calc(100vh-3.5rem)] min-w-55 flex-col border-r border-gray-700 bg-gray-900 py-10">
+      {/* Mobile Sidebar Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <aside className={`
+        flex h-[calc(100vh-3.5rem)] min-w-55 flex-col border-r border-gray-700 bg-gray-900 py-10
+        transition-all duration-300
+        fixed top-14 bottom-0 left-0 z-50 md:relative md:top-0 md:translate-x-0
+        ${isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+      `}>
         
         {/* Navigation Links */}
         <nav className="flex flex-col">
@@ -39,6 +52,7 @@ export default function Sidebar() {
                 key={link.id}
                 link={link}
                 iconName={link.icon}
+                onClick={() => setIsSidebarOpen(false)}
               />
             )
           })}
@@ -52,11 +66,13 @@ export default function Sidebar() {
           <SidebarLink
             link={{ name: "Settings", path: "/dashboard/settings" }}
             iconName="VscSettingsGear"
+            onClick={() => setIsSidebarOpen(false)}
           />
 
           {/* Logout */}
           <button
-            onClick={() =>
+            onClick={() => {
+              setIsSidebarOpen(false)
               setConfirmationModal({
                 text1: "Are you sure?",
                 text2: "You will be logged out of your account.",
@@ -65,7 +81,7 @@ export default function Sidebar() {
                 btn1Handler: () => dispatch(logout(navigate)),
                 btn2Handler: () => setConfirmationModal(null),
               })
-            }
+            }}
             className="
               mx-4 mt-2 rounded-md px-4 py-2
               text-sm font-medium text-gray-300 transition-shadow duration-200

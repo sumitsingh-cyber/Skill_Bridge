@@ -4,7 +4,7 @@ import { NavLink } from "react-router-dom"
 
 import { resetCourseState } from "../../../slices/courseSlice"
 
-export default function SidebarLink({ link, iconName }) {
+export default function SidebarLink({ link, iconName, onClick }) {
   const dispatch = useDispatch()
 
   // Safely resolve icon
@@ -13,7 +13,10 @@ export default function SidebarLink({ link, iconName }) {
   return (
     <NavLink
       to={link.path}
-      onClick={() => dispatch(resetCourseState())}
+      onClick={() => {
+        dispatch(resetCourseState())
+        if (onClick) onClick()
+      }}
       className={({ isActive }) =>
         `
           relative flex items-center gap-2
