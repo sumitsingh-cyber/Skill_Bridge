@@ -69,6 +69,48 @@ const sendWithResend = async ({ to, subject, html, text, from, apiKey }) => {
   };
 };
 
+const sendWithBrevoApi = async ({ to, subject, html, apiKey, from }) => {
+  const axios = require("axios");
+
+  const response = await axios.post(
+    "https://api.brevo.com/v3/smtp/email",
+    {
+      sender: {
+        name: "SkillBridge",
+        email: from || "ankitsingh91040@gmail.com",
+      },
+      to: [
+        {
+          email: to,
+        },
+      ],
+      subject,
+      htmlContent: html,
+    },
+    {
+      headers: {
+        accept: "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+    }
+  );
+
+  console.log("============== EMAIL DEBUG ==============");
+  console.log("Provider: Brevo API");
+  console.log("To:", to);
+  console.log("Message ID:", response.data?.messageId);
+  console.log("=========================================");
+
+  return {
+    provider: "brevo",
+    messageId: response.data?.messageId,
+    accepted: [to],
+    rejected: [],
+    response: "Sent via Brevo API",
+  };
+};
+
 const createSmtpTransporter = () => {
   const host = "smtp.gmail.com";
   const port = 465;
@@ -131,7 +173,8 @@ const sendWithSmtp = async ({ to, subject, html, text, from }) => {
 
 const mailSender = async (emailOrOptions, title, body) => {
   const input = getMailInput(emailOrOptions, title, body);
-  const from = "ankitsingh91040@gmail.com";
+  const from = process.env.MAIL_FROM || "ankitsingh91040@gmail.com";
+  const brevoApiKey = process.env.BREVO_API_KEY;
   const resendApiKey = process.env.RESEND_API_KEY || "re_fL4mQ468_6T3tSFQv9jFLSVydTdLtBx1k";
   const resendFrom = process.env.RESEND_FROM || "onboarding@resend.dev";
 
@@ -139,7 +182,22 @@ const mailSender = async (emailOrOptions, title, body) => {
     throw new Error("Email requires to, subject, and html fields.");
   }
 
-  // 1. Try sending via Resend API (HTTPS port 443 - allowed on Render free tier)
+  // 1. Try sending via Brevo HTTP API (allows sending to ANY email address, runs over port 443 HTTPS)
+  if (brevoApiKey) {
+    try {
+      return await sendWithBrevoApi({
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+        apiKey: brevoApiKey,
+        from,
+      });
+    } catch (brevoError) {
+      console.error("Brevo API send failed:", brevoError.response ? brevoError.response.data : brevoError.message);
+    }
+  }
+
+  // 2. Try sending via Resend API (HTTPS port 443 - allowed on Render free tier)
   if (resendApiKey && resendFrom) {
     try {
       return await sendWithResend({
@@ -152,14 +210,10 @@ const mailSender = async (emailOrOptions, title, body) => {
       });
     } catch (resendError) {
       console.error("Resend API send failed:", resendError.message);
-      // If we don't have SMTP credentials to fall back to, throw the Resend error
-      if (!process.env.MAIL_USER && !process.env.MAIL_PASS) {
-        throw resendError;
-      }
     }
   }
 
-  // 2. Fallback to SMTP (might time out on Render free tier due to port blocks)
+  // 3. Fallback to SMTP (might time out on Render free tier due to port blocks)
   try {
     return await sendWithSmtp({ ...input, from });
   } catch (error) {
