@@ -47,7 +47,7 @@ app.use("/api/v1/payment", paymentRoutes);
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Backend running on Vercel 🚀",
+    message: "Backend running on Render - v3 🚀",
   });
 });
 
