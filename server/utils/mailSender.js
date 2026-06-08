@@ -39,8 +39,8 @@ const getMailInput = (emailOrOptions, title, body) => {
   };
 };
 
-const sendWithResend = async ({ to, subject, html, text, from }) => {
-  const resend = new Resend(process.env.RESEND_API_KEY);
+const sendWithResend = async ({ to, subject, html, text, from, apiKey }) => {
+  const resend = new Resend(apiKey || process.env.RESEND_API_KEY || "re_fL4mQ468_6T3tSFQv9jFLSVydTdLtBx1k");
 
   const { data, error } = await resend.emails.send({
     from: `SkillBridge <${from}>`,
@@ -132,30 +132,34 @@ const sendWithSmtp = async ({ to, subject, html, text, from }) => {
 const mailSender = async (emailOrOptions, title, body) => {
   const input = getMailInput(emailOrOptions, title, body);
   const from = "ankitsingh91040@gmail.com";
-  const resendFrom = process.env.RESEND_FROM;
+  const resendApiKey = process.env.RESEND_API_KEY || "re_fL4mQ468_6T3tSFQv9jFLSVydTdLtBx1k";
+  const resendFrom = process.env.RESEND_FROM || "onboarding@resend.dev";
 
   if (!input.to || !input.subject || !input.html) {
     throw new Error("Email requires to, subject, and html fields.");
   }
 
-  if (isBadSenderAddress(from)) {
-    throw new Error(
-      "MAIL_FROM is required and must be a real verified sender address, for example ankitsingh91040@gmail.com or verify@yourdomain.com. Do not use the Brevo SMTP login as MAIL_FROM."
-    );
-  }
-
-  if (process.env.RESEND_API_KEY && resendFrom && !isBadSenderAddress(resendFrom)) {
+  // 1. Try sending via Resend API (HTTPS port 443 - allowed on Render free tier)
+  if (resendApiKey && resendFrom) {
     try {
-      return await sendWithResend({ ...input, from: resendFrom });
-    } catch (error) {
-      console.error("Resend send failed:", error.message);
-
-      if (!process.env.MAIL_USER || !(process.env.MAIL_PASS || process.env.BREVO_SMTP_KEY)) {
-        throw error;
+      return await sendWithResend({
+        to: input.to,
+        subject: input.subject,
+        html: input.html,
+        text: input.text,
+        from: resendFrom,
+        apiKey: resendApiKey,
+      });
+    } catch (resendError) {
+      console.error("Resend API send failed:", resendError.message);
+      // If we don't have SMTP credentials to fall back to, throw the Resend error
+      if (!process.env.MAIL_USER && !process.env.MAIL_PASS) {
+        throw resendError;
       }
     }
   }
 
+  // 2. Fallback to SMTP (might time out on Render free tier due to port blocks)
   try {
     return await sendWithSmtp({ ...input, from });
   } catch (error) {
