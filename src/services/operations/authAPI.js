@@ -28,9 +28,10 @@ export function sendOtp(email, navigate) {
       }
 
       toast.success("OTP Sent Successfully");
-      navigate("/verify-email");
+      if (navigate) navigate("/verify-email");
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Could Not Send OTP");
+      console.log("SENDOTP API ERROR............", error);
+      toast.error(error?.response?.data?.message || error?.message || "Could Not Send OTP");
     }
     dispatch(setLoading(false));
     toast.dismiss(toastId);
@@ -68,7 +69,8 @@ export function signUp(
       toast.success("Signup Successful");
       navigate("/login");
     } catch (error) {
-      toast.error("Signup Failed");
+      console.log("SIGNUP API ERROR............", error);
+      toast.error(error?.response?.data?.message || error?.message || "Signup Failed");
       navigate("/signup");
     }
     dispatch(setLoading(false));
@@ -95,18 +97,21 @@ export function login(email, password, navigate) {
       const token = response.data.token;
       dispatch(setToken(token));
 
-      const userImage = response.data?.user?.image
+      const userImage = response.data?.user?.Image
+        ? response.data.user.Image
+        : response.data?.user?.image
         ? response.data.user.image
         : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`;
 
-      dispatch(setUser({ ...response.data.user, image: userImage }));
+      dispatch(setUser({ ...response.data.user, image: userImage, Image: userImage }));
 
       localStorage.setItem("token", JSON.stringify(token));
-      localStorage.setItem("user", JSON.stringify(response.data.user));
+      localStorage.setItem("user", JSON.stringify({ ...response.data.user, image: userImage, Image: userImage }));
 
       navigate("/dashboard/my-profile");
     } catch (error) {
-      toast.error("Login Failed");
+      console.log("LOGIN API ERROR............", error);
+      toast.error(error?.response?.data?.message || error?.message || "Login Failed");
     }
     dispatch(setLoading(false));
     toast.dismiss(toastId);
@@ -138,7 +143,8 @@ export function getPasswordResetToken(email, setEmailSent) {
       toast.success("Reset Email Sent");
       setEmailSent(true);
     } catch (error) {
-      toast.error("Failed to send email for resetting password");
+      console.log("RESETPASSTOKEN API ERROR............", error);
+      toast.error(error?.response?.data?.message || error?.message || "Failed to send email for resetting password");
     }
     dispatch(setLoading(false));
   };
@@ -160,7 +166,8 @@ export function resetPassword(password, confirmPassword, token) {
 
       toast.success("Password has been reset successfully");
     } catch (error) {
-      toast.error("Unable to reset password");
+      console.log("RESETPASSWORD API ERROR............", error);
+      toast.error(error?.response?.data?.message || error?.message || "Unable to reset password");
     }
     dispatch(setLoading(false));
   };

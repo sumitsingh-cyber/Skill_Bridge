@@ -125,8 +125,8 @@ exports.sendOTP = async (req, res) => {
         //2 password match krlo 
         if(password !== confirmPassword){
             return res.status(400).json({
-                success:true,
-                message:"Password and ConfirmPassword miss match, Please try again",
+                success:false,
+                message:"Password and ConfirmPassword mismatch, Please try again",
             });
         }
 
@@ -134,7 +134,7 @@ exports.sendOTP = async (req, res) => {
         const existingUser =await User.findOne({email});
         if(existingUser){
             return res.status(400).json({
-                success:true,
+                success:false,
                 message:"User is already registered",
             });
         }
@@ -148,8 +148,8 @@ exports.sendOTP = async (req, res) => {
         if(recentOtp.length == 0){
             //OTP not found
             return res.status(400).json({
-                success:true,
-                message:"OTP is not  Found",
+                success:false,
+                message:"OTP Not Found or Expired. Please request a new OTP.",
             })
         }
          const isOtpValid = await bcrypt.compare(String(otp), recentOtp[0].otp);
@@ -212,10 +212,11 @@ exports.sendOTP = async (req, res) => {
 
 exports.login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email: rawEmail, password } = req.body;
+    const email = rawEmail?.trim().toLowerCase();
 
     if (!email || !password) {
-      return res.status(403).json({
+      return res.status(400).json({
         success: false,
         message: "All fields are required, Please try again",
       });
