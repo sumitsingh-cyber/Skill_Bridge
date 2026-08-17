@@ -174,35 +174,45 @@ exports.sendPaymentSuccessEmail = async (req, res) => {
 
 /* ================= ENROLL STUDENTS ================= */
 const enrollStudents = async (courses, userId) => {
-  const session = await mongoose.startSession()
-  session.startTransaction()
+  let session = null;
+  let useTransaction = true;
+
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+  } catch (err) {
+    console.log("MongoDB transaction unavailable, proceeding without transaction:", err.message);
+    useTransaction = false;
+    session = null;
+  }
 
   try {
     for (const courseId of courses) {
       if (!mongoose.Types.ObjectId.isValid(courseId)) {
-        throw new Error(`Invalid course ID: ${courseId}`)
+        throw new Error(`Invalid course ID: ${courseId}`);
       }
+
+      const updateOpts = useTransaction ? { new: true, session } : { new: true };
 
       const course = await Course.findByIdAndUpdate(
         courseId,
         { $addToSet: { studentsEnrolled: userId } },
-        { new: true, session }
-      )
+        updateOpts
+      );
 
       if (!course) {
-        throw new Error("Course not found during enrollment")
+        throw new Error("Course not found during enrollment");
       }
 
-      const progress = await CourseProgress.create(
-        [
-          {
-            courseID: courseId,
-            userId,
-            completedVideos: [],
-          },
-        ],
-        { session }
-      )
+      const progressData = {
+        courseID: courseId,
+        userId,
+        completedVideos: [],
+      };
+
+      const progress = useTransaction
+        ? await CourseProgress.create([progressData], { session })
+        : [await CourseProgress.create(progressData)];
 
       await User.findByIdAndUpdate(
         userId,
@@ -212,25 +222,35 @@ const enrollStudents = async (courses, userId) => {
             courseProgress: progress[0]._id,
           },
         },
-        { session }
-      )
+        updateOpts
+      );
 
-      const user = await User.findById(userId).session(session)
+      const user = useTransaction
+        ? await User.findById(userId).session(session)
+        : await User.findById(userId);
 
       if (user) {
-        await mailSender(
-          user.email,
-          `Successfully Enrolled in ${course.courseName}`,
-          courseEnrollmentEmail(course.courseName, "")
-        )
+        try {
+          await mailSender(
+            user.email,
+            `Successfully Enrolled in ${course.courseName}`,
+            courseEnrollmentEmail(course.courseName, "")
+          );
+        } catch (mailErr) {
+          console.error("Enrollment email error:", mailErr.message);
+        }
       }
     }
 
-    await session.commitTransaction()
-    session.endSession()
+    if (useTransaction && session) {
+      await session.commitTransaction();
+      session.endSession();
+    }
   } catch (error) {
-    await session.abortTransaction()
-    session.endSession()
-    throw error
+    if (useTransaction && session) {
+      await session.abortTransaction();
+      session.endSession();
+    }
+    throw error;
   }
-}
+};

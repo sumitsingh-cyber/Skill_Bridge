@@ -19,6 +19,7 @@ router.put("/updateProfile", auth, updateProfile);
 router.put("/updateDisplayPicture", auth, updateDisplayPicture);
 router.post("/changepassword", auth, changePassword);
 router.delete("/deleteAccount", auth, deleteAccount);
+router.delete("/deleteaccount", auth, deleteAccount);
 router.get("/getEnrolledCourses", auth, isStudent, getEnrolledCourses);
 
 // Instructor dashboard

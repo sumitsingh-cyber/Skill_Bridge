@@ -28,11 +28,12 @@
                                  {new:true},// updated documents
                               ) 
    //create url
-    const url =`http://localhost:5174/update-password/${token}`
+    const frontendUrl = process.env.FRONTEND_URL || req.headers.origin || "http://localhost:5173";
+    const url = `${frontendUrl}/update-password/${token}`;
    //send email containing the url
    await mailSender(email,
              "Password Reset Link",
-             `Password Reset Link:${url}`
+             `Password Reset Link: ${url}`
    );
    //return response
    return res.json({

@@ -42,20 +42,30 @@ const {
 
 // Add Section to a course
 
+const { updateCourseProgress } = require("../controllers/CourseProgress");
+
 router.post("/addSubSection", auth, isInstructor, createSubSection);
 router.put("/updateSubSection", auth, isInstructor, updateSubSection);
+router.delete("/deleteSubSection", auth, isInstructor, deleteSubSection);
+router.post("/deleteSubSection", auth, isInstructor, deleteSubSection);
 router.delete("/deleteSubSection/:SubSectionId", auth, isInstructor, deleteSubSection);
 
 
 router.post("/addSection", auth, isInstructor, createSection);
 router.put("/updateSection", auth, isInstructor, updateSection);
 router.delete("/deleteSection", auth, isInstructor, deleteSection);
+router.post("/deleteSection", auth, isInstructor, deleteSection);
 router.get("/getInstructorCourses", auth,  isInstructor,  getInstructorCourses);
 router.delete("/deleteCourse/:courseId", auth,  isInstructor, deleteCourse)
 // Edit course
 router.put("/editCourse", auth, isInstructor, editCourse)
 
-
+router.post(
+  "/updateCourseProgress",
+  auth,
+  isStudent,
+  updateCourseProgress
+);
 
 router.post(
   "/getFullCourseDetails",

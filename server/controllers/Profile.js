@@ -154,19 +154,46 @@ exports.getEnrolledCourses = async (req, res) => {
 
 
 
-// Update Display Picture (Placeholder for now)
+// Update Display Picture
 exports.updateDisplayPicture = async (req, res) => {
-    try {
-        return res.status(200).json({
-            success: true,
-            message: "Display picture updated successfully (placeholder)"
-        });
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: "Unable to update display picture",
-        });
+  try {
+    const displayPicture = req.files?.displayPicture || req.files?.thumbnailImage || req.files?.image;
+    const userId = req.user.id;
+
+    if (!displayPicture) {
+      return res.status(400).json({
+        success: false,
+        message: "Display Picture file is required",
+      });
     }
+
+    const { uploadImageToCloudinary } = require("../utils/imageUploader");
+
+    const image = await uploadImageToCloudinary(
+      displayPicture,
+      process.env.FOLDER_NAME,
+      1000,
+      1000
+    );
+
+    const updatedProfile = await User.findByIdAndUpdate(
+      userId,
+      { Image: image.secure_url },
+      { new: true }
+    ).populate("additionalDetails");
+
+    return res.status(200).json({
+      success: true,
+      message: "Display picture updated successfully",
+      data: updatedProfile,
+    });
+  } catch (error) {
+    console.error("UPDATE DISPLAY PICTURE ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Unable to update display picture",
+    });
+  }
 };
 
 exports.changePassword = async (req, res) => {

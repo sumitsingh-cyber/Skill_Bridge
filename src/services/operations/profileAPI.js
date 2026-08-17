@@ -117,9 +117,12 @@ export async function getInstructorData(token) {
       throw new Error("Failed to fetch instructor data")
     }
 
-    return Array.isArray(response?.data?.courses)
-      ? response.data.courses
-      : []
+    const coursesData =
+      response?.data?.data?.courses ||
+      response?.data?.courses ||
+      (Array.isArray(response?.data?.data) ? response.data.data : []);
+
+    return Array.isArray(coursesData) ? coursesData : [];
   } catch (error) {
     console.log("GET_INSTRUCTOR_API ERROR 👉", error)
     toast.error("Could not Get Instructor Data")
