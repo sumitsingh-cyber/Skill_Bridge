@@ -37,9 +37,10 @@ export default function ChangeProfilePicture() {
   const handleFileUpload = () => {
     try {
       setLoading(true)
+      const currentToken = token || localStorage.getItem("token")?.replace(/^["']|["']$/g, "")
       const formData = new FormData()
       formData.append("displayPicture", imageFile)
-      dispatch(updateDisplayPicture(token, formData)).finally(() =>
+      dispatch(updateDisplayPicture(currentToken, formData)).finally(() =>
         setLoading(false)
       )
     } catch (error) {

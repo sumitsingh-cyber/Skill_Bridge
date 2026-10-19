@@ -12,8 +12,9 @@ export default function RenderTotalAmount() {
   const dispatch = useDispatch()
 
   const handleBuyCourse = () => {
+    const currentToken = token || localStorage.getItem("token")?.replace(/^["']|["']$/g, "")
     const courses = cart.map((course) => course._id)
-    buyCourse(token, courses, user, navigate, dispatch)
+    buyCourse(currentToken, courses, user, navigate, dispatch)
   }
 
   return (

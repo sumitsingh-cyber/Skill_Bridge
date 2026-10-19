@@ -17,10 +17,16 @@ export default function InstructorChart({ courses = [] }) {
 
     const labels = courses.map(c => c.courseName)
 
+    const getCount = (c) => {
+      if (Array.isArray(c?.studentsEnrolled)) return c.studentsEnrolled.length
+      if (typeof c?.studentsEnrolled === "number") return c.studentsEnrolled
+      return 0
+    }
+
     const data =
       mode === "students"
-        ? courses.map(c => c.studentsEnrolled?.length || 0)
-        : courses.map(c => (c.studentsEnrolled?.length || 0) * c.price)
+        ? courses.map(c => getCount(c))
+        : courses.map(c => getCount(c) * (c.price || 0))
 
     chartRef.current = new Chart(canvasRef.current, {
       type: "pie",

@@ -18,6 +18,7 @@ export const apiConnector = (
       cleanToken = rawToken;
     }
     if (cleanToken) {
+      cleanToken = String(cleanToken).replace(/^["']|["']$/g, "").trim();
       authHeader = {
         Authorization: `Bearer ${cleanToken}`,
       };
@@ -30,8 +31,8 @@ export const apiConnector = (
     data: bodyData,
     params,
     headers: {
-      ...headers,
       ...authHeader,
+      ...headers,
     },
     withCredentials: true,
   });

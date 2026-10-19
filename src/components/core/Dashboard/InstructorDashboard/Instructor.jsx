@@ -21,28 +21,30 @@ export default function Instructor() {
       const dashboardRes = await getInstructorData(token)
       const coursesRes = await fetchInstructorCourses(token)
 
-      if (dashboardRes?.data) {
-        setDashboardData(dashboardRes.data)
-      }
+      const finalCourses = (Array.isArray(coursesRes) && coursesRes.length > 0)
+        ? coursesRes
+        : (Array.isArray(dashboardRes) ? dashboardRes : []);
 
-      if (Array.isArray(coursesRes)) {
-        setCourses(coursesRes)
-      }
-
+      setCourses(finalCourses)
       setLoading(false)
     }
 
     fetchData()
   }, [token])
 
+  const getStudentCount = (course) => {
+    if (Array.isArray(course?.studentsEnrolled)) return course.studentsEnrolled.length
+    if (typeof course?.studentsEnrolled === "number") return course.studentsEnrolled
+    return 0
+  }
+
   const totalStudents = courses.reduce(
-    (acc, course) => acc + (course.studentsEnrolled?.length || 0),
+    (acc, course) => acc + getStudentCount(course),
     0
   )
 
   const totalAmount = courses.reduce(
-    (acc, course) =>
-      acc + (course.studentsEnrolled?.length || 0) * course.price,
+    (acc, course) => acc + getStudentCount(course) * (course.price || 0),
     0
   )
 

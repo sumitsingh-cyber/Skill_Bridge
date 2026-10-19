@@ -34,7 +34,8 @@ export default function UpdatePassword() {
     // 🔒 Frontend safety check (NO backend change)
     if (!oldPassword || !newPassword) return
 
-    await changePassword(token, { oldPassword, newPassword })
+    const currentToken = token || localStorage.getItem("token")?.replace(/^["']|["']$/g, "")
+    await changePassword(currentToken, { oldPassword, newPassword })
   }
 
   return (

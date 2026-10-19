@@ -15,12 +15,14 @@ const cors = require("cors");
 const { cloudinaryConnect } = require("./config/cloudinary");
 const fileUpload = require("express-fileupload");
 const { seedDefaultAdmin } = require("./utils/seedAdmin");
+const { seedDefaultCourses } = require("./utils/seedCourses");
 
 const PORT = process.env.PORT || 4000;
 
-// Connect DB & Seed Admin
-database.connect().then(() => {
-  seedDefaultAdmin();
+// Connect DB & Seed Admin + Default Courses
+database.connect().then(async () => {
+  await seedDefaultAdmin();
+  await seedDefaultCourses();
 });
 
 // Middlewares

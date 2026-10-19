@@ -104,7 +104,8 @@ function CourseDetails() {
       return
     }
 
-buyCourse(token, [courseId], user, navigate, dispatch)
+    const currentToken = token || localStorage.getItem("token")?.replace(/^["']|["']$/g, "")
+    buyCourse(currentToken, [courseId], user, navigate, dispatch)
 
  
 

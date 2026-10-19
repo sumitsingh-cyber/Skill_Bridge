@@ -15,7 +15,12 @@ export default function EnrolledCourses() {
   const getEnrolledCourses = async () => {
     try {
       setLoading(true)
-      const res = await getUserEnrolledCourses(token)
+      const currentToken = token || localStorage.getItem("token")?.replace(/^["']|["']$/g, "")
+      if (!currentToken) {
+        setEnrolledCourses([])
+        return
+      }
+      const res = await getUserEnrolledCourses(currentToken)
       setEnrolledCourses(Array.isArray(res) ? res : [])
     } catch (error) {
       console.log("❌ Could not fetch enrolled courses.", error)
@@ -27,8 +32,7 @@ export default function EnrolledCourses() {
 
   useEffect(() => {
     getEnrolledCourses()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [token])
 
   /* ✅ SINGLE CLICK HANDLER */
   const handleCourseClick = (course) => {

@@ -20,9 +20,12 @@ export default function MyProfile() {
       <div className="flex flex-col gap-y-4 sm:flex-row sm:items-center justify-between rounded-md border border-gray-700 bg-gray-900 p-4 px-6 sm:p-8 sm:px-12 hover:shadow-[0_0_20px_rgba(255,255,255,0.08)] transition-shadow duration-300">
         <div className="flex flex-col gap-y-3 sm:flex-row sm:items-center gap-x-4 text-center sm:text-left">
           <img
-            src={user?.image}
-            alt={`profile-${user?.firstName}`}
-            className="aspect-square w-19.5 rounded-full object-cover mx-auto sm:mx-0 hover:scale-105 transition-transform duration-300"
+            src={
+              (user?.image || user?.Image || `https://api.dicebear.com/5.x/initials/svg?seed=${user?.firstName || "U"}%20${user?.lastName || ""}`)
+                .replace(/^http:\/\//, "https://")
+            }
+            alt={`profile-${user?.firstName || "user"}`}
+            className="aspect-square w-19.5 rounded-full object-cover mx-auto sm:mx-0 hover:scale-105 transition-transform duration-300 border border-gray-700"
           />
           <div className="space-y-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">

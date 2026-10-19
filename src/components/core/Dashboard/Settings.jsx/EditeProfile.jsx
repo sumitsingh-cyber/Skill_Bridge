@@ -21,7 +21,8 @@ export default function EditProfile() {
 
   const submitProfileForm = async (data) => {
     try {
-      dispatch(updateProfile(token, data))
+      const currentToken = token || localStorage.getItem("token")?.replace(/^["']|["']$/g, "")
+      dispatch(updateProfile(currentToken, data))
     } catch (error) {
       console.log("ERROR MESSAGE - ", error.message)
     }

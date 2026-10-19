@@ -14,7 +14,8 @@ export default function DeleteAccount() {
 
   async function handleDeleteAccount() {
     try {
-      dispatch(deleteProfile(token, navigate))
+      const currentToken = token || localStorage.getItem("token")?.replace(/^["']|["']$/g, "")
+      dispatch(deleteProfile(currentToken, navigate))
     } catch (error) {
       console.log("ERROR MESSAGE - ", error.message)
     }

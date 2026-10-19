@@ -6,49 +6,71 @@ const { passwordUpdated } = require("../mail/templates/passwordUpdate");
 const Profile = require("../models/Profile");
 const User = require("../models/User");
 const Course = require("../models/Course");
-exports.updateProfile =async (req,res) =>{
-    try{
-        //get data 
-        const {dateOfBirth="",about="",contactNumber,gender}=req.body;
-        //get userId
-        const id=req.user.id;
-        //validation
-        if(!contactNumber || !gender || !id){
-            return res.status(400).json({
-                success:false,
-                message:"All fields are required",
-            });
-        }
-        //find profile
-        const userDetails=await User.findById(id);
-        const profileId = userDetails.additionalDetails;
-        const profileDetails=await  Profile.findById(profileId);
+exports.updateProfile = async (req, res) => {
+  try {
+    const { firstName, lastName, dateOfBirth = "", about = "", contactNumber = "", gender = "" } = req.body;
+    const id = req.user?.id || req.user?._id;
 
-        //update profile
-        profileDetails.dateOfBirth= dateOfBirth;
-        profileDetails.about =about;
-        profileDetails.contactNumber=contactNumber;
-        await profileDetails.save();
-
-        //return response 
-      return res.status(200).json({
-  success: true,
-  message: "Profile Updated Successfully",
-  updatedUserDetails: {
-    ...userDetails._doc,
-    additionalDetails: profileDetails,
-  },
-});
-
-
-    }catch(error){
-        return res.status(500).json({
-            success:false,
-            message:"Profile is not  updated",
-            error:error.message,
-        })
+    if (!id) {
+      return res.status(401).json({
+        success: false,
+        message: "User ID missing. Please log in again.",
+      });
     }
-}
+
+    const userDetails = await User.findById(id);
+    if (!userDetails) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (firstName && firstName.trim()) userDetails.firstName = firstName.trim();
+    if (lastName && lastName.trim()) userDetails.lastName = lastName.trim();
+    if (contactNumber && contactNumber.trim()) userDetails.contactNumber = contactNumber.trim();
+    await userDetails.save();
+
+    let profileDetails = null;
+    if (userDetails.additionalDetails) {
+      profileDetails = await Profile.findById(userDetails.additionalDetails);
+    }
+
+    if (!profileDetails) {
+      profileDetails = await Profile.create({
+        gender: gender || null,
+        dateOfBirth: dateOfBirth || null,
+        about: about || null,
+        contactNumber: contactNumber || null,
+      });
+      userDetails.additionalDetails = profileDetails._id;
+      await userDetails.save();
+    } else {
+      if (dateOfBirth !== undefined) profileDetails.dateOfBirth = dateOfBirth;
+      if (about !== undefined) profileDetails.about = about;
+      if (contactNumber !== undefined) profileDetails.contactNumber = contactNumber;
+      if (gender !== undefined) profileDetails.gender = gender;
+      await profileDetails.save();
+    }
+
+    const updatedUserDetails = await User.findById(id)
+      .populate("additionalDetails")
+      .exec();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile Updated Successfully",
+      updatedUserDetails,
+    });
+  } catch (error) {
+    console.error("updateProfile error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Profile is not updated",
+      error: error.message,
+    });
+  }
+};
 
 
 exports.deleteAccount = async (req, res) => {
@@ -124,41 +146,45 @@ exports.getUserDetails = async (req, res) => {
 // get Enrolled Courses
 exports.getEnrolledCourses = async (req, res) => {
   try {
-    const userId = req.user.id
+    const userId = req.user?.id || req.user?._id;
+
+    const user = await User.findById(userId);
+    const userCourseIds = user?.courses || [];
 
     const courses = await Course.find({
-      studentsEnrolled: userId,
+      $or: [
+        { studentsEnrolled: userId },
+        { _id: { $in: userCourseIds } },
+      ],
     })
       .populate("instructor")
       .populate({
         path: "courseContent",
-        model: "Section",          // 👈 FORCE MODEL
+        model: "Section",
         populate: {
           path: "subSection",
-          model: "SubSection",     // 👈 FORCE MODEL
+          model: "SubSection",
         },
-      })
+      });
 
     return res.status(200).json({
       success: true,
       data: courses,
-    })
+    });
   } catch (error) {
-    console.error("❌ getEnrolledCourses error:", error)
+    console.error("❌ getEnrolledCourses error:", error);
     return res.status(500).json({
       success: false,
       message: error.message,
-    })
+    });
   }
-}
-
-
+};
 
 // Update Display Picture
 exports.updateDisplayPicture = async (req, res) => {
   try {
     const displayPicture = req.files?.displayPicture || req.files?.thumbnailImage || req.files?.image;
-    const userId = req.user.id;
+    const userId = req.user?.id || req.user?._id;
 
     if (!displayPicture) {
       return res.status(400).json({
@@ -198,7 +224,7 @@ exports.updateDisplayPicture = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id || req.user?._id;
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
@@ -209,6 +235,12 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
@@ -222,11 +254,15 @@ exports.changePassword = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    await mailSender(
-      user.email,
-      "Password Updated Successfully",
-      passwordUpdated(user.email)
-    );
+    try {
+      await mailSender(
+        user.email,
+        "Password Updated Successfully",
+        passwordUpdated(user.email)
+      );
+    } catch (mailError) {
+      console.warn("Change password email sending failed:", mailError.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -234,6 +270,7 @@ exports.changePassword = async (req, res) => {
     });
 
   } catch (error) {
+    console.error("Change password error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to change password",
@@ -241,26 +278,24 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-
-
 exports.getInstructorDashboard = async (req, res) => {
   try {
-    const instructorId = req.user.id
+    const instructorId = req.user?.id || req.user?._id;
 
-    const courses = await Course.find({ instructor: instructorId })
+    const courses = await Course.find({ instructor: instructorId });
 
-    const totalCourses = courses.length
+    const totalCourses = courses.length;
 
     const totalStudents = courses.reduce(
-      (acc, course) => acc + (course.studentsEnrolled?.length || 0),
+      (acc, course) => acc + (Array.isArray(course.studentsEnrolled) ? course.studentsEnrolled.length : 0),
       0
-    )
+    );
 
     const totalEarnings = courses.reduce(
       (acc, course) =>
-        acc + (course.studentsEnrolled?.length || 0) * course.price,
+        acc + (Array.isArray(course.studentsEnrolled) ? course.studentsEnrolled.length : 0) * (course.price || 0),
       0
-    )
+    );
 
     return res.status(200).json({
       success: true,
