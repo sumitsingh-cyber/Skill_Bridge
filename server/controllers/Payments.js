@@ -55,6 +55,16 @@ exports.capturePayment = async (req, res) => {
       totalAmount += (course.price || 0)
     }
 
+    // Direct enrollment for free courses
+    if (totalAmount === 0) {
+      await enrollStudents(courses, userId)
+      return res.status(200).json({
+        success: true,
+        isFreeCourse: true,
+        message: "Enrolled in course successfully",
+      })
+    }
+
     let order;
     try {
       order = await getInstance().orders.create({
@@ -77,6 +87,7 @@ exports.capturePayment = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: order,
+      keyId: process.env.RAZORPAY_KEY || "rzp_test_RnEagYlvEQOGpy",
     })
   } catch (error) {
     console.error("capturePayment error:", error)

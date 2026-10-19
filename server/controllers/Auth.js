@@ -282,7 +282,7 @@ exports.login = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const userId = req.user?.id || req.user?._id;
+    const userId = req.user.id;
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
@@ -293,16 +293,10 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      return res.status(401).json({
+      return res.status(400).json({
         success: false,
         message: "Current password is incorrect",
       });
@@ -312,15 +306,11 @@ exports.changePassword = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    try {
-      await mailSender(
-        user.email,
-        "Password Updated Successfully",
-        passwordUpdated(user.email)
-      );
-    } catch (mailError) {
-      console.warn("Change password email sending failed:", mailError.message);
-    }
+    await mailSender(
+      user.email,
+      "Password Updated Successfully",
+      passwordUpdated(user.email)
+    );
 
     return res.status(200).json({
       success: true,
@@ -328,7 +318,6 @@ exports.changePassword = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Change password error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to change password",

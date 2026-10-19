@@ -8,13 +8,20 @@ const User = require("../models/User");
 const Course = require("../models/Course");
 exports.updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, dateOfBirth = "", about = "", contactNumber = "", gender = "" } = req.body;
-    const id = req.user?.id || req.user?._id;
+    const {
+      firstName,
+      lastName,
+      dateOfBirth = "",
+      about = "",
+      contactNumber = "",
+      gender = "",
+    } = req.body;
+    const id = req.user?.id;
 
     if (!id) {
       return res.status(401).json({
         success: false,
-        message: "User ID missing. Please log in again.",
+        message: "User ID is required",
       });
     }
 
@@ -26,10 +33,18 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
-    if (firstName && firstName.trim()) userDetails.firstName = firstName.trim();
-    if (lastName && lastName.trim()) userDetails.lastName = lastName.trim();
-    if (contactNumber && contactNumber.trim()) userDetails.contactNumber = contactNumber.trim();
-    await userDetails.save();
+    let userChanged = false;
+    if (firstName && firstName !== userDetails.firstName) {
+      userDetails.firstName = firstName;
+      userChanged = true;
+    }
+    if (lastName && lastName !== userDetails.lastName) {
+      userDetails.lastName = lastName;
+      userChanged = true;
+    }
+    if (userChanged) {
+      await userDetails.save();
+    }
 
     let profileDetails = null;
     if (userDetails.additionalDetails) {
@@ -38,10 +53,10 @@ exports.updateProfile = async (req, res) => {
 
     if (!profileDetails) {
       profileDetails = await Profile.create({
-        gender: gender || null,
         dateOfBirth: dateOfBirth || null,
         about: about || null,
         contactNumber: contactNumber || null,
+        gender: gender || null,
       });
       userDetails.additionalDetails = profileDetails._id;
       await userDetails.save();
@@ -53,9 +68,7 @@ exports.updateProfile = async (req, res) => {
       await profileDetails.save();
     }
 
-    const updatedUserDetails = await User.findById(id)
-      .populate("additionalDetails")
-      .exec();
+    const updatedUserDetails = await User.findById(id).populate("additionalDetails");
 
     return res.status(200).json({
       success: true,
@@ -146,45 +159,41 @@ exports.getUserDetails = async (req, res) => {
 // get Enrolled Courses
 exports.getEnrolledCourses = async (req, res) => {
   try {
-    const userId = req.user?.id || req.user?._id;
-
-    const user = await User.findById(userId);
-    const userCourseIds = user?.courses || [];
+    const userId = req.user.id
 
     const courses = await Course.find({
-      $or: [
-        { studentsEnrolled: userId },
-        { _id: { $in: userCourseIds } },
-      ],
+      studentsEnrolled: userId,
     })
       .populate("instructor")
       .populate({
         path: "courseContent",
-        model: "Section",
+        model: "Section",          // 👈 FORCE MODEL
         populate: {
           path: "subSection",
-          model: "SubSection",
+          model: "SubSection",     // 👈 FORCE MODEL
         },
-      });
+      })
 
     return res.status(200).json({
       success: true,
       data: courses,
-    });
+    })
   } catch (error) {
-    console.error("❌ getEnrolledCourses error:", error);
+    console.error("❌ getEnrolledCourses error:", error)
     return res.status(500).json({
       success: false,
       message: error.message,
-    });
+    })
   }
-};
+}
+
+
 
 // Update Display Picture
 exports.updateDisplayPicture = async (req, res) => {
   try {
     const displayPicture = req.files?.displayPicture || req.files?.thumbnailImage || req.files?.image;
-    const userId = req.user?.id || req.user?._id;
+    const userId = req.user.id;
 
     if (!displayPicture) {
       return res.status(400).json({
@@ -224,7 +233,7 @@ exports.updateDisplayPicture = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
   try {
-    const userId = req.user?.id || req.user?._id;
+    const userId = req.user.id;
     const { oldPassword, newPassword } = req.body;
 
     if (!oldPassword || !newPassword) {
@@ -235,16 +244,10 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) {
-      return res.status(401).json({
+      return res.status(400).json({
         success: false,
         message: "Current password is incorrect",
       });
@@ -254,15 +257,11 @@ exports.changePassword = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    try {
-      await mailSender(
-        user.email,
-        "Password Updated Successfully",
-        passwordUpdated(user.email)
-      );
-    } catch (mailError) {
-      console.warn("Change password email sending failed:", mailError.message);
-    }
+    await mailSender(
+      user.email,
+      "Password Updated Successfully",
+      passwordUpdated(user.email)
+    );
 
     return res.status(200).json({
       success: true,
@@ -270,7 +269,6 @@ exports.changePassword = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Change password error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to change password",
@@ -278,24 +276,26 @@ exports.changePassword = async (req, res) => {
   }
 };
 
+
+
 exports.getInstructorDashboard = async (req, res) => {
   try {
-    const instructorId = req.user?.id || req.user?._id;
+    const instructorId = req.user.id
 
-    const courses = await Course.find({ instructor: instructorId });
+    const courses = await Course.find({ instructor: instructorId })
 
-    const totalCourses = courses.length;
+    const totalCourses = courses.length
 
     const totalStudents = courses.reduce(
-      (acc, course) => acc + (Array.isArray(course.studentsEnrolled) ? course.studentsEnrolled.length : 0),
+      (acc, course) => acc + (course.studentsEnrolled?.length || 0),
       0
-    );
+    )
 
     const totalEarnings = courses.reduce(
       (acc, course) =>
-        acc + (Array.isArray(course.studentsEnrolled) ? course.studentsEnrolled.length : 0) * (course.price || 0),
+        acc + (course.studentsEnrolled?.length || 0) * course.price,
       0
-    );
+    )
 
     return res.status(200).json({
       success: true,

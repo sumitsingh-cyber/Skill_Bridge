@@ -53,6 +53,14 @@ export async function buyCourse(token, courses, userDetails, navigate, dispatch)
         }
         console.log("PRINTING orderResponse", orderResponse);
 
+        if (orderResponse.data.isFreeCourse) {
+          toast.success("Successfully enrolled in free course!");
+          navigate("/dashboard/enrolled-courses");
+          dispatch(resetCart());
+          toast.dismiss(toastId);
+          return;
+        }
+
         if (orderResponse.data.message?.isDemoOrder) {
           toast.success("Completing course enrollment...");
           await verifyPayment(
@@ -70,38 +78,47 @@ export async function buyCourse(token, courses, userDetails, navigate, dispatch)
           return;
         }
 
-        //options
+        //options for real Razorpay
+        const rzpKey =
+          orderResponse.data.keyId ||
+          import.meta.env.VITE_RAZORPAY_KEY ||
+          "rzp_test_RnEagYlvEQOGpy";
+
         const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY,
+          key: rzpKey,
+          currency: orderResponse.data.message.currency,
+          amount: orderResponse.data.message.amount,
+          order_id: orderResponse.data.message.id,
+          name: "SkillBridge",
+          description: "Thank You for Purchasing the Course",
+          prefill: {
+            name: `${userDetails?.firstName || ""} ${userDetails?.lastName || ""}`.trim(),
+            email: userDetails?.email || "",
+          },
+          handler(response) {
+            sendPaymentSuccessEmail(
+              response,
+              orderResponse.data.message.amount,
+              token
+            );
+            verifyPayment(
+              {
+                ...response,
+                courses: Array.isArray(courses) ? courses : [courses],
+              },
+              token,
+              navigate,
+              dispatch
+            );
+          },
+        };
 
-  currency: orderResponse.data.message.currency,
-  amount: orderResponse.data.message.amount,
-  order_id: orderResponse.data.message.id,
-  name: "SkillBridge",
-  description: "Thank You for Purchasing the Course",
-  prefill: {
-    name: userDetails.firstName,
-    email: userDetails.email,
-  },
-  handler(response) {
-    sendPaymentSuccessEmail(
-      response,
-      orderResponse.data.message.amount,
-      token
-    )
-    verifyPayment({ ...response, courses }, token, navigate, dispatch)
-  },
-}
-
-
-
-        
         const paymentObject = new window.Razorpay(options);
         paymentObject.open();
-        paymentObject.on("payment.failed", function(response) {
-            toast.error("oops, payment failed");
-            console.log(response.error);
-        })
+        paymentObject.on("payment.failed", function (response) {
+          toast.error("Payment failed. Please try again.");
+          console.log(response.error);
+        });
 
     }
  catch (error) {
