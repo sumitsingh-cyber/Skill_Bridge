@@ -68,9 +68,10 @@ exports.categoryPageDetails = async (req, res) => {
       .populate({
         path: "courses",
         match: { status: "Published" },
-        populate: {
-          path: "instructor",
-        },
+        populate: [
+          { path: "instructor" },
+          { path: "ratingAndReviews" },
+        ],
       })
       .exec()
 
@@ -88,6 +89,10 @@ exports.categoryPageDetails = async (req, res) => {
       .populate({
         path: "courses",
         match: { status: "Published" },
+        populate: [
+          { path: "instructor" },
+          { path: "ratingAndReviews" },
+        ],
       })
       .exec()
 
@@ -98,6 +103,7 @@ exports.categoryPageDetails = async (req, res) => {
       .sort({ studentsEnrolled: -1 })
       .limit(10)
       .populate("instructor")
+      .populate("ratingAndReviews")
       .exec()
 
     return res.status(200).json({

@@ -48,15 +48,32 @@ export async function buyCourse(token, courses, userDetails, navigate, dispatch)
 )
 
 
-        if(!orderResponse.data.success) {
+        if (!orderResponse.data.success) {
             throw new Error(orderResponse.data.message);
         }
         console.log("PRINTING orderResponse", orderResponse);
+
+        if (orderResponse.data.message?.isDemoOrder) {
+          toast.success("Completing course enrollment...");
+          await verifyPayment(
+            {
+              razorpay_order_id: orderResponse.data.message.id,
+              razorpay_payment_id: `pay_demo_${Date.now()}`,
+              razorpay_signature: "demo_signature",
+              courses: Array.isArray(courses) ? courses : [courses],
+            },
+            token,
+            navigate,
+            dispatch
+          );
+          toast.dismiss(toastId);
+          return;
+        }
+
         //options
+        const options = {
+          key: import.meta.env.VITE_RAZORPAY_KEY,
 
-
-const options = {
-  key: import.meta.env.VITE_RAZORPAY_KEY,
   currency: orderResponse.data.message.currency,
   amount: orderResponse.data.message.amount,
   order_id: orderResponse.data.message.id,

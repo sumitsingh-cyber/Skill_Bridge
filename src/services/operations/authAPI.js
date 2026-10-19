@@ -97,11 +97,16 @@ export function login(email, password, navigate) {
       const token = response.data.token;
       dispatch(setToken(token));
 
-      const userImage = response.data?.user?.Image
+      let userImage = response.data?.user?.Image
         ? response.data.user.Image
         : response.data?.user?.image
         ? response.data.user.image
         : `https://api.dicebear.com/5.x/initials/svg?seed=${response.data.user.firstName} ${response.data.user.lastName}`;
+
+      if (typeof userImage === "string") {
+        userImage = userImage.replace(/^http:\/\//i, "https://");
+      }
+
 
       dispatch(setUser({ ...response.data.user, image: userImage, Image: userImage }));
 
