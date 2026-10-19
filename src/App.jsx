@@ -20,6 +20,10 @@ import AddCourse from "./components/core/Dashboard/AddCourse"
 import MyCourses from "./components/core/Dashboard/MyCourses"
 import EditCourse from "./components/core/Dashboard/EditCourse"
 import Instructor from "./components/core/Dashboard/InstructorDashboard/Instructor.jsx"
+import AdminDashboard from "./components/core/Dashboard/Admin/AdminDashboard"
+import ManageCategories from "./components/core/Dashboard/Admin/ManageCategories"
+import AllUsers from "./components/core/Dashboard/Admin/AllUsers"
+import AllCourses from "./components/core/Dashboard/Admin/AllCourses"
 
 import Catalog from "./pages/catalog.jsx"
 import CourseDetails from "./pages/CourseDetails"
@@ -35,6 +39,7 @@ import "./App.css"
 
 function App() {
   const { user } = useSelector((state) => state.profile)
+  const userRole = user?.accountType?.toLowerCase()
 
   return (
     <div className="w-screen min-h-screen bg-gray-950 flex flex-col font-inter">
@@ -104,11 +109,11 @@ function App() {
           <Route path="my-profile" element={<MyProfile />} />
           <Route path="settings" element={<Settings />} />
 
-          {/* Student */}
+          {/* Student Routes */}
           <Route
             path="cart"
             element={
-              user?.accountType === ACCOUNT_TYPE.STUDENT ? (
+              userRole === ACCOUNT_TYPE.STUDENT.toLowerCase() ? (
                 <Cart />
               ) : (
                 <MyProfile />
@@ -118,7 +123,7 @@ function App() {
           <Route
             path="enrolled-courses"
             element={
-              user?.accountType === ACCOUNT_TYPE.STUDENT ? (
+              userRole === ACCOUNT_TYPE.STUDENT.toLowerCase() ? (
                 <EnrolledCourses />
               ) : (
                 <MyProfile />
@@ -126,11 +131,11 @@ function App() {
             }
           />
 
-          {/* Instructor */}
+          {/* Instructor Routes */}
           <Route
             path="instructor"
             element={
-              user?.accountType === ACCOUNT_TYPE.INSTRUCTOR ? (
+              userRole === ACCOUNT_TYPE.INSTRUCTOR.toLowerCase() ? (
                 <Instructor />
               ) : (
                 <MyProfile />
@@ -140,7 +145,7 @@ function App() {
           <Route
             path="add-course"
             element={
-              user?.accountType === ACCOUNT_TYPE.INSTRUCTOR ? (
+              userRole === ACCOUNT_TYPE.INSTRUCTOR.toLowerCase() ? (
                 <AddCourse />
               ) : (
                 <MyProfile />
@@ -150,7 +155,7 @@ function App() {
           <Route
             path="my-courses"
             element={
-              user?.accountType === ACCOUNT_TYPE.INSTRUCTOR ? (
+              userRole === ACCOUNT_TYPE.INSTRUCTOR.toLowerCase() ? (
                 <MyCourses />
               ) : (
                 <MyProfile />
@@ -160,8 +165,50 @@ function App() {
           <Route
             path="edit-course/:courseId"
             element={
-              user?.accountType === ACCOUNT_TYPE.INSTRUCTOR ? (
+              userRole === ACCOUNT_TYPE.INSTRUCTOR.toLowerCase() ? (
                 <EditCourse />
+              ) : (
+                <MyProfile />
+              )
+            }
+          />
+
+          {/* Admin Routes */}
+          <Route
+            path="admin"
+            element={
+              userRole === ACCOUNT_TYPE.ADMIN.toLowerCase() ? (
+                <AdminDashboard />
+              ) : (
+                <MyProfile />
+              )
+            }
+          />
+          <Route
+            path="manage-categories"
+            element={
+              userRole === ACCOUNT_TYPE.ADMIN.toLowerCase() ? (
+                <ManageCategories />
+              ) : (
+                <MyProfile />
+              )
+            }
+          />
+          <Route
+            path="all-users"
+            element={
+              userRole === ACCOUNT_TYPE.ADMIN.toLowerCase() ? (
+                <AllUsers />
+              ) : (
+                <MyProfile />
+              )
+            }
+          />
+          <Route
+            path="all-courses"
+            element={
+              userRole === ACCOUNT_TYPE.ADMIN.toLowerCase() ? (
+                <AllCourses />
               ) : (
                 <MyProfile />
               )
@@ -169,7 +216,7 @@ function App() {
           />
         </Route>
 
-        {/* ========= View Course (Student Only) ========= */}
+        {/* ========= View Course (All Enrolled Learners & Educators) ========= */}
         <Route
           path="/view-course/:courseId/*"
           element={
@@ -178,13 +225,12 @@ function App() {
             </PrivateRoute>
           }
         >
-          {user?.accountType === ACCOUNT_TYPE.STUDENT && (
-            <Route
-              path="section/:sectionId/sub-section/:subSectionId"
-              element={<VideoDetails />}
-            />
-          )}
+          <Route
+            path="section/:sectionId/sub-section/:subSectionId"
+            element={<VideoDetails />}
+          />
         </Route>
+
 
         {/* ========= 404 ========= */}
         <Route path="*" element={<Error />} />

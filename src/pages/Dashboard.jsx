@@ -37,11 +37,12 @@ function Dashboard() {
           </button>
         </div>
 
-        <div className="mx-auto w-11/12 max-w-300 py-10">
-          <section className="rounded-xl bg-gray-900 border border-gray-800 p-6 sm:p-8">
+        <div className="mx-auto w-11/12 max-w-7xl py-8 sm:py-10">
+          <section className="rounded-2xl bg-gray-900/90 border border-gray-800 p-5 sm:p-8 backdrop-blur-md shadow-2xl">
             <Outlet />
           </section>
         </div>
+
       </main>
     </div>
   )

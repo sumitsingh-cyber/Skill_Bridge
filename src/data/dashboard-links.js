@@ -41,4 +41,33 @@ export const sidebarLinks = [
     type: ACCOUNT_TYPE.STUDENT,
     icon: "VscHistory",
   },
+  {
+    id: 7,
+    name: "Admin Dashboard",
+    path: "/dashboard/admin",
+    type: ACCOUNT_TYPE.ADMIN,
+    icon: "VscDashboard",
+  },
+  {
+    id: 8,
+    name: "Manage Categories",
+    path: "/dashboard/manage-categories",
+    type: ACCOUNT_TYPE.ADMIN,
+    icon: "VscFolderOpened",
+  },
+  {
+    id: 9,
+    name: "All Users",
+    path: "/dashboard/all-users",
+    type: ACCOUNT_TYPE.ADMIN,
+    icon: "VscOrganization",
+  },
+  {
+    id: 10,
+    name: "All Courses",
+    path: "/dashboard/all-courses",
+    type: ACCOUNT_TYPE.ADMIN,
+    icon: "VscLayers",
+  },
 ];
+

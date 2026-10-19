@@ -1,20 +1,27 @@
-const jwt=require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const User =require("../models/User");
+const User = require("../models/User");
 
-//auth
+// auth middleware
 exports.auth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    let token = null;
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Authorization header missing",
-      });
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    } else if (req.cookies?.Token || req.cookies?.token) {
+      token = req.cookies.Token || req.cookies.token;
+    } else if (req.body?.token) {
+      token = req.body.token;
     }
 
-    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication token is missing. Please log in.",
+      });
+    }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "manish");
     req.user = decoded;
@@ -23,19 +30,19 @@ exports.auth = async (req, res, next) => {
   } catch (error) {
     return res.status(401).json({
       success: false,
-      message: "Invalid token",
+      message: "Invalid or expired token. Please log in again.",
     });
   }
 };
 
-
-//isStudent
+// isStudent middleware
 exports.isStudent = async (req, res, next) => {
   try {
-    if (req.user.accountType?.toLowerCase() !== "student") {
+    const role = req.user?.accountType?.toLowerCase();
+    if (role !== "student") {
       return res.status(403).json({
         success: false,
-        message: "Student access only",
+        message: "Access forbidden: Student access only",
       });
     }
     next();
@@ -47,41 +54,41 @@ exports.isStudent = async (req, res, next) => {
   }
 };
 
-//isinstructor
-exports.isInstructor =async(req,res,next)=>{
-    try{
-        if(req.user.accountType !== "Instructor"){
-            return res.status(401).json({
-                success:false,
-                message:"This is a protected route for Instructor only",
-            });
-        }next();
-
-    }catch(error){
-        return res.status(500).json({
-            success:false,
-            message:"User role cannot be verified,please try again",
-        });
+// isInstructor middleware
+exports.isInstructor = async (req, res, next) => {
+  try {
+    const role = req.user?.accountType?.toLowerCase();
+    if (role !== "instructor") {
+      return res.status(403).json({
+        success: false,
+        message: "Access forbidden: Instructor access only",
+      });
     }
-}
+    next();
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "User role cannot be verified",
+    });
+  }
+};
 
-
-
-
-//isAdmin
-exports.isAdmin =async(req,res,next)=>{
-    try{
-        if(req.user.accountType !== "Admin"){
-            return res.status(401).json({
-                success:false,
-                message:"This is a protected route for Admin only",
-            });
-        }next();
-
-    }catch(error){
-        return res.status(500).json({
-            success:false,
-            message:"User role cannot be verified,please try again",
-        });
+// isAdmin middleware
+exports.isAdmin = async (req, res, next) => {
+  try {
+    const role = req.user?.accountType?.toLowerCase();
+    if (role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Access forbidden: Admin access only",
+      });
     }
-}
+    next();
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "User role cannot be verified",
+    });
+  }
+};
+

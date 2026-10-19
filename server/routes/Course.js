@@ -70,7 +70,6 @@ router.post(
 router.post(
   "/getFullCourseDetails",
   auth,
-  isStudent,
   getFullCourseDetails
 );
 

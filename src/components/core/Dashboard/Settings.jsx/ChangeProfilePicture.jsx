@@ -116,9 +116,9 @@ export default function ChangeProfilePicture() {
             {/* Upload Button */}
             <IconBtn
               text={loading ? "Uploading..." : "Upload"}
-              onclick={handleFileUpload}
+              onClick={handleFileUpload}
               disabled={!imageFile || loading}
-              className="
+              customClasses="
                 bg-indigo-600 text-white
                 hover:bg-indigo-500
                 shadow-md shadow-indigo-600/30
@@ -129,6 +129,7 @@ export default function ChangeProfilePicture() {
             >
               {!loading && <FiUpload className="text-lg" />}
             </IconBtn>
+
           </div>
         </div>
       </div>

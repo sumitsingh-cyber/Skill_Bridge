@@ -11,9 +11,17 @@ export const apiConnector = (
 
   let authHeader = {};
   if (rawToken && rawToken !== "null" && rawToken !== "undefined") {
-    authHeader = {
-      Authorization: `Bearer ${JSON.parse(rawToken)}`,
-    };
+    let cleanToken = rawToken;
+    try {
+      cleanToken = JSON.parse(rawToken);
+    } catch {
+      cleanToken = rawToken;
+    }
+    if (cleanToken) {
+      authHeader = {
+        Authorization: `Bearer ${cleanToken}`,
+      };
+    }
   }
 
   return axios({

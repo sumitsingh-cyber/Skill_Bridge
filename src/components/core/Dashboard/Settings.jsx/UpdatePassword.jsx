@@ -196,15 +196,15 @@ export default function UpdatePassword() {
         <IconBtn
           type="submit"
           text="Update"
-          pace
           disabled={!isValid}
-          className={`
+          customClasses={`
             bg-indigo-600 text-white transition-all duration-300
             ${!isValid
               ? "opacity-50 cursor-not-allowed"
               : "hover:bg-indigo-500 active:scale-95"}
           `}
         />
+
       </div>
     </form>
   )

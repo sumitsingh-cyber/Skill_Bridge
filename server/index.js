@@ -7,17 +7,21 @@ const profileRoutes = require("./routes/Profile");
 const paymentRoutes = require("./routes/Payments");
 const courseRoutes = require("./routes/Course");
 const contactRoutes = require("./routes/Contact");
+const adminRoutes = require("./routes/Admin");
 
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { cloudinaryConnect } = require("./config/cloudinary");
 const fileUpload = require("express-fileupload");
+const { seedDefaultAdmin } = require("./utils/seedAdmin");
 
 const PORT = process.env.PORT || 4000;
 
-// Connect DB
-database.connect();
+// Connect DB & Seed Admin
+database.connect().then(() => {
+  seedDefaultAdmin();
+});
 
 // Middlewares
 app.use(express.json());
@@ -45,6 +49,8 @@ app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/reach", contactRoutes);
+app.use("/api/v1/admin", adminRoutes);
+
 
 app.get("/", (req, res) => {
   res.json({

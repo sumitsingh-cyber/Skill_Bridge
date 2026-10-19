@@ -1,18 +1,24 @@
 export default function IconBtn({
   text,
   onClick,
+  onclick,
   children,
   disabled,
   outline = false,
   customClasses,
-  type 
+  className,
+  type = "button",
 }) {
+  const handleClick = onClick || onclick
+  const extraClasses = customClasses || className || ""
+
   return (
     <button
       type={type}
       disabled={disabled}
-      onClick={onClick}
+      onClick={handleClick}
       className={`
+
         group inline-flex items-center gap-2
         rounded-lg px-5 py-2
         font-semibold
@@ -42,8 +48,9 @@ export default function IconBtn({
             : "cursor-pointer active:scale-[0.97]"
         }
 
-        ${customClasses}
+        ${extraClasses}
       `}
+
     >
       {children ? (
         <>

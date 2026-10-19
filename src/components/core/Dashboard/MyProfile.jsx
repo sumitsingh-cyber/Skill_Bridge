@@ -25,13 +25,27 @@ export default function MyProfile() {
             className="aspect-square w-19.5 rounded-full object-cover mx-auto sm:mx-0 hover:scale-105 transition-transform duration-300"
           />
           <div className="space-y-1">
-            <p className="text-lg font-semibold text-gray-100">
-              {user?.firstName + " " + user?.lastName}
-            </p>
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <p className="text-lg font-semibold text-gray-100">
+                {user?.firstName + " " + user?.lastName}
+              </p>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  user?.accountType === "Admin"
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                    : user?.accountType === "Instructor"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                    : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                }`}
+              >
+                {user?.accountType || "Student"}
+              </span>
+            </div>
             <p className="text-sm text-gray-400 break-all">
               {user?.email}
             </p>
           </div>
+
         </div>
 
         <div className="self-center sm:self-auto">

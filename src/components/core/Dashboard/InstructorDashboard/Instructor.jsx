@@ -63,33 +63,33 @@ export default function Instructor() {
       {courses.length > 0 ? (
         <>
           {/* ===== Chart + Stats ===== */}
-          <div className="flex h-112.5 gap-6">
-            <div className="flex-1 rounded-xl bg-gray-900 p-6">
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex-1 rounded-2xl border border-gray-800 bg-gray-900/80 p-6 backdrop-blur-md">
               <InstructorChart courses={courses} />
             </div>
 
-            <div className="min-w-65 rounded-xl bg-gray-900 p-6">
+            <div className="w-full lg:min-w-65 lg:w-72 rounded-2xl border border-gray-800 bg-gray-900/80 p-6 backdrop-blur-md">
               <p className="text-lg font-semibold text-gray-100">Statistics</p>
 
               <div className="mt-6 space-y-4">
-                <div>
-                  <p className="text-gray-400">Total Courses</p>
-                  <p className="text-3xl font-bold text-gray-100">
+                <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-4">
+                  <p className="text-xs text-gray-400">Total Courses</p>
+                  <p className="text-2xl font-bold text-gray-100">
                     {courses.length}
                   </p>
                 </div>
 
-                <div>
-                  <p className="text-gray-400">Total Students</p>
-                  <p className="text-3xl font-bold text-gray-100">
+                <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-4">
+                  <p className="text-xs text-gray-400">Total Students</p>
+                  <p className="text-2xl font-bold text-gray-100">
                     {totalStudents}
                   </p>
                 </div>
 
-                <div>
-                  <p className="text-gray-400">Total Income</p>
-                  <p className="text-3xl font-bold text-yellow-400">
-                    ₹ {totalAmount}
+                <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-4">
+                  <p className="text-xs text-gray-400">Total Income</p>
+                  <p className="text-2xl font-bold text-yellow-400">
+                    ₹ {totalAmount.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -97,7 +97,7 @@ export default function Instructor() {
           </div>
 
           {/* ===== Courses Preview ===== */}
-          <div className="rounded-xl bg-gray-900 p-6">
+          <div className="rounded-2xl border border-gray-800 bg-gray-900/80 p-6 backdrop-blur-md">
             <div className="flex items-center justify-between">
               <p className="text-lg font-semibold text-gray-100">
                 Your Courses
@@ -110,35 +110,35 @@ export default function Instructor() {
               </Link>
             </div>
 
-            <div className="mt-6 flex gap-6">
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.slice(0, 3).map((course) => (
                 <div
                   key={course._id}
-                  className="w-1/3 rounded-lg bg-gray-800 p-3"
+                  className="rounded-xl border border-gray-800 bg-gray-800/80 p-3 transition-all hover:border-gray-700 hover:shadow-lg hover:-translate-y-0.5"
                 >
                   <img
                     src={course.thumbnail}
                     alt={course.courseName}
-                    className="h-50 w-full rounded-md object-cover"
+                    className="h-44 w-full rounded-lg object-cover"
                   />
 
                   <div className="mt-3">
-                    <p className="font-medium text-gray-100">
+                    <p className="font-semibold text-gray-100 line-clamp-1">
                       {course.courseName}
                     </p>
 
-                    <div className="mt-1 flex gap-2 text-sm text-gray-400">
+                    <div className="mt-1 flex items-center justify-between text-xs text-gray-400">
                       <span>
                         {course.studentsEnrolled?.length || 0} students
                       </span>
-                      <span>•</span>
-                      <span>₹ {course.price}</span>
+                      <span className="font-bold text-yellow-400">₹ {course.price}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+
         </>
       ) : (
         <div className="mt-24 rounded-xl bg-gray-900 py-20 text-center">

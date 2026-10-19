@@ -230,7 +230,7 @@ export default function EditProfile() {
         <IconBtn
           type="submit"
           text="Save"
-          className="
+          customClasses="
             bg-indigo-600 text-white
             hover:bg-indigo-500
             shadow-md shadow-indigo-600/30
@@ -239,6 +239,7 @@ export default function EditProfile() {
             active:scale-95
           "
         />
+
       </div>
     </form>
   )

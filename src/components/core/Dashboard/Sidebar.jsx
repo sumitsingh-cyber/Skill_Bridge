@@ -46,7 +46,12 @@ export default function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
         {/* Navigation Links */}
         <nav className="flex flex-col">
           {sidebarLinks.map((link) => {
-            if (link.type && user?.accountType !== link.type) return null
+            if (
+              link.type &&
+              user?.accountType?.toLowerCase() !== link.type.toLowerCase()
+            )
+              return null
+
             return (
               <SidebarLink
                 key={link.id}

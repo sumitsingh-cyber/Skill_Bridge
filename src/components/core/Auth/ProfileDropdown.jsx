@@ -43,44 +43,95 @@ export default function ProfileDropdown() {
           ref={ref}
           onClick={(e) => e.stopPropagation()}
           className="
-            absolute right-0 top-[120%] z-1000 w-44
-            overflow-hidden rounded-xl border border-gray-600
-            bg-linear-to-b from-gray-800 to-gray-900
-            shadow-lg shadow-black/40
+            absolute right-0 top-[120%] z-1000 w-52
+            overflow-hidden rounded-2xl border border-gray-700
+            bg-gray-900/95 backdrop-blur-xl
+            shadow-2xl shadow-black/60
             animate-fadeIn
           "
         >
-          <Link to="/dashboard/my-profile" onClick={() => setOpen(false)}>
-            <div className="
-              flex items-center gap-x-2 px-4 py-3 text-sm
-              text-gray-200
-              transition-all duration-200
-              hover:bg-gray-700 hover:text-white
-            ">
-              <VscDashboard className="text-lg" />
-              Dashboard
-            </div>
-          </Link>
+          {/* User Info Header */}
+          <div className="border-b border-gray-800 px-4 py-3">
+            <p className="text-sm font-semibold text-gray-100 truncate">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="text-xs text-gray-400 truncate font-mono">
+              {user?.email}
+            </p>
+            <span
+              className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                user?.accountType === "Admin"
+                  ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                  : user?.accountType === "Instructor"
+                  ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                  : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+              }`}
+            >
+              {user?.accountType || "Student"}
+            </span>
+          </div>
 
-          <div className="h-px bg-gray-600" />
+          {/* Links */}
+          <div className="py-1">
+            {user?.accountType === "Admin" ? (
+              <Link to="/dashboard/admin" onClick={() => setOpen(false)}>
+                <div className="flex items-center gap-x-2.5 px-4 py-2.5 text-xs font-medium text-gray-200 transition-colors hover:bg-gray-800 hover:text-white">
+                  <VscDashboard className="text-base text-purple-400" />
+                  Admin Dashboard
+                </div>
+              </Link>
+            ) : user?.accountType === "Instructor" ? (
+              <Link to="/dashboard/instructor" onClick={() => setOpen(false)}>
+                <div className="flex items-center gap-x-2.5 px-4 py-2.5 text-xs font-medium text-gray-200 transition-colors hover:bg-gray-800 hover:text-white">
+                  <VscDashboard className="text-base text-amber-400" />
+                  Instructor Dashboard
+                </div>
+              </Link>
+            ) : (
+              <Link to="/dashboard/enrolled-courses" onClick={() => setOpen(false)}>
+                <div className="flex items-center gap-x-2.5 px-4 py-2.5 text-xs font-medium text-gray-200 transition-colors hover:bg-gray-800 hover:text-white">
+                  <VscDashboard className="text-base text-emerald-400" />
+                  Enrolled Courses
+                </div>
+              </Link>
+            )}
 
+            <Link to="/dashboard/my-profile" onClick={() => setOpen(false)}>
+              <div className="flex items-center gap-x-2.5 px-4 py-2.5 text-xs font-medium text-gray-200 transition-colors hover:bg-gray-800 hover:text-white">
+                <VscDashboard className="text-base text-gray-400" />
+                My Profile
+              </div>
+            </Link>
+
+            <Link to="/dashboard/settings" onClick={() => setOpen(false)}>
+              <div className="flex items-center gap-x-2.5 px-4 py-2.5 text-xs font-medium text-gray-200 transition-colors hover:bg-gray-800 hover:text-white">
+                <VscDashboard className="text-base text-gray-400" />
+                Settings
+              </div>
+            </Link>
+          </div>
+
+          <div className="h-px bg-gray-800" />
+
+          {/* Logout */}
           <div
             onClick={() => {
               dispatch(logout(navigate))
               setOpen(false)
             }}
             className="
-              flex items-center gap-x-2 px-4 py-3 text-sm
-              text-gray-200 cursor-pointer
-              transition-all duration-200
-              hover:bg-red-500/10 hover:text-red-400
+              flex items-center gap-x-2.5 px-4 py-3 text-xs font-medium
+              text-red-400 cursor-pointer
+              transition-colors
+              hover:bg-red-500/10 hover:text-red-300
             "
           >
-            <VscSignOut className="text-lg" />
+            <VscSignOut className="text-base" />
             Logout
           </div>
         </div>
       )}
+
     </button>
   )
 }
