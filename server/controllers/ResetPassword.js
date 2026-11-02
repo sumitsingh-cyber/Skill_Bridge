@@ -43,7 +43,7 @@ exports.resetPasswordToken = async (req, res) => {
     const frontendUrl =
       process.env.FRONTEND_URL ||
       (process.env.NODE_ENV === "production"
-        ? "https://skill-bridge-lemon.vercel.app"
+        ? "https://skill-bridge-ruddy-beta.vercel.app"
         : "http://localhost:5173");
 
     const resetUrl = `${frontendUrl}/update-password/${token}`;

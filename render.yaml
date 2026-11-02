@@ -39,6 +39,6 @@ services:
       - key: RAZORPAY_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://skill-bridge-lemon.vercel.app
+        value: https://skill-bridge-ruddy-beta.vercel.app
       - key: ALLOWED_ORIGINS
-        value: https://skill-bridge-lemon.vercel.app,https://skill-bridge-sumit-singhs-projects-140ed6ee.vercel.app
+        value: https://skill-bridge-ruddy-beta.vercel.app,https://skill-bridge-lemon.vercel.app,https://skill-bridge-sumit-singhs-projects-140ed6ee.vercel.app

@@ -18,15 +18,15 @@ const { seedDefaultAdmin } = require("./utils/seedAdmin");
 
 const PORT = process.env.PORT || 4000;
 
-// Allowed origins — production Vercel frontend + localhost for development
+// Allowed origins
 const ALLOWED_ORIGINS = [
+  "https://skill-bridge-ruddy-beta.vercel.app",
   "https://skill-bridge-lemon.vercel.app",
   "https://skill-bridge-sumit-singhs-projects-140ed6ee.vercel.app",
   "http://localhost:5173",
   "http://localhost:3000",
 ];
 
-// Allow additional origins via env var (comma-separated)
 if (process.env.ALLOWED_ORIGINS) {
   process.env.ALLOWED_ORIGINS.split(",").forEach((o) => {
     const trimmed = o.trim();
@@ -37,25 +37,33 @@ if (process.env.ALLOWED_ORIGINS) {
 // Connect DB, then provision admin if not already present
 database.connect().then(async () => {
   await seedDefaultAdmin();
-  // NOTE: seedDefaultCourses() is intentionally NOT called here.
-  //       Sample/demo courses should not be injected automatically.
-  //       Use the admin dashboard or a one-time migration script to manage courses.
 });
 
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
+
+// CORS configuration — supports all project Vercel deployments, localhost, and custom domains
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, curl, Postman)
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
-      if (ALLOWED_ORIGINS.includes(origin)) {
+
+      const isVercel = origin.endsWith(".vercel.app");
+      const isLocal = origin.includes("localhost") || origin.includes("127.0.0.1");
+      const isExplicitlyAllowed = ALLOWED_ORIGINS.includes(origin);
+
+      if (isVercel || isLocal || isExplicitlyAllowed) {
         return callback(null, true);
       }
-      return callback(new Error(`CORS: origin ${origin} not allowed`));
+
+      return callback(null, false);
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    optionsSuccessStatus: 200,
   })
 );
 
