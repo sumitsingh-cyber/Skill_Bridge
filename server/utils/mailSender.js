@@ -26,6 +26,15 @@ const getMailInput = (emailOrOptions, title, body) => {
   };
 };
 
+const getBrevoKey = () => {
+  return (
+    process.env.BREVO_API_KEY ||
+    process.env.BREVO_KEY ||
+    process.env.BREVO_SMTP_KEY ||
+    null
+  );
+};
+
 const sendWithBrevoApi = async ({ to, subject, html, apiKey, from }) => {
   const response = await fetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
@@ -40,6 +49,7 @@ const sendWithBrevoApi = async ({ to, subject, html, apiKey, from }) => {
       subject,
       htmlContent: html,
     }),
+    signal: AbortSignal.timeout(8000), // 8-second strict timeout
   });
 
   const data = await response.json();
@@ -98,6 +108,9 @@ const sendWithSmtp = async ({ to, subject, html, text, from }) => {
     port,
     secure: port === 465,
     auth: { user, pass },
+    connectionTimeout: 5000, // 5s timeout prevents hanging on Render
+    greetingTimeout: 5000,
+    socketTimeout: 5000,
   });
 
   const info = await transporter.sendMail({
@@ -117,12 +130,12 @@ const sendWithSmtp = async ({ to, subject, html, text, from }) => {
  * mailSender(emailOrOptions, title?, body?)
  * 
  * Provider priority: Brevo HTTP API (Port 443 HTTPS) -> Resend API -> SMTP
- * All credentials are read strictly from environment variables.
+ * Sourced strictly from environment variables.
  */
 const mailSender = async (emailOrOptions, title, body) => {
   const input = getMailInput(emailOrOptions, title, body);
   const from = process.env.MAIL_FROM || "ankitsingh91040@gmail.com";
-  const brevoApiKey = process.env.BREVO_API_KEY || process.env.BREVO_KEY;
+  const brevoApiKey = getBrevoKey();
   const resendApiKey = process.env.RESEND_API_KEY;
   const resendFrom = process.env.RESEND_FROM || "onboarding@resend.dev";
 
@@ -130,7 +143,7 @@ const mailSender = async (emailOrOptions, title, body) => {
     throw new Error("Email requires 'to', 'subject', and 'html' fields.");
   }
 
-  // 1. Brevo HTTP API (HTTPS port 443 — reliable on Render free tier)
+  // 1. Brevo HTTP API (HTTPS port 443)
   if (brevoApiKey && from) {
     try {
       return await sendWithBrevoApi({
@@ -161,7 +174,7 @@ const mailSender = async (emailOrOptions, title, body) => {
     }
   }
 
-  // 3. SMTP fallback
+  // 3. SMTP fallback (with 5s strict timeout)
   if (from && process.env.MAIL_HOST) {
     try {
       return await sendWithSmtp({ ...input, from });
