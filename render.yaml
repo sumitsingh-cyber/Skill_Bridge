@@ -12,6 +12,12 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: MAIL_FROM
+        value: ankitsingh91040@gmail.com
+      - key: BREVO_API_KEY
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
       - key: MAIL_HOST
         sync: false
       - key: MAIL_USER
@@ -27,10 +33,12 @@ services:
       - key: API_SECRET
         sync: false
       - key: FOLDER_NAME
-        sync: false
+        value: SkillBridge
       - key: RAZORPAY_KEY
         sync: false
       - key: RAZORPAY_SECRET
         sync: false
-      - key: RESEND_API_KEY
-        sync: false
+      - key: FRONTEND_URL
+        value: https://skill-bridge-lemon.vercel.app
+      - key: ALLOWED_ORIGINS
+        value: https://skill-bridge-lemon.vercel.app,https://skill-bridge-sumit-singhs-projects-140ed6ee.vercel.app

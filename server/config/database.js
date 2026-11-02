@@ -4,18 +4,23 @@ let isConnected = false;
 
 exports.connect = async () => {
   if (isConnected) {
-    console.log("=> using existing database connection");
+    console.log("=> Using existing database connection");
     return;
   }
-  
+
+  const mongoUrl = process.env.MONGODB_URL;
+
+  if (!mongoUrl) {
+    console.error("CRITICAL: MONGODB_URL environment variable is not set. Server cannot start.");
+    process.exit(1);
+  }
+
   try {
-    const db = await mongoose.connect(
-      process.env.MONGODB_URL || "mongodb+srv://StudyNotion:vo4WltrLa3I51dZl@cluster0.jhrlfnp.mongodb.net/studynotiondb2"
-    );
+    const db = await mongoose.connect(mongoUrl);
     isConnected = db.connections[0].readyState;
     console.log("DB connected successfully");
   } catch (error) {
-    console.log("DB connection failed");
-    console.error(error);
+    console.error("DB connection failed:", error.message);
+    process.exit(1);
   }
 };

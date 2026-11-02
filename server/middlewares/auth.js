@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const User = require("../models/User");
 
-// auth middleware
+// ================ AUTH MIDDLEWARE ================
 exports.auth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization || req.header("Authorization");
@@ -25,39 +25,42 @@ exports.auth = async (req, res, next) => {
       });
     }
 
-    // Strip leading/trailing quotes or whitespace if serialized
+    // Strip accidental quotes or whitespace from serialized storage
     token = String(token).replace(/^["']|["']$/g, "").trim();
 
-    const secret = process.env.JWT_SECRET || "manish";
-    let decoded;
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      console.error("CRITICAL: JWT_SECRET environment variable is not set");
+      return res.status(500).json({
+        success: false,
+        message: "Server configuration error. Please contact support.",
+      });
+    }
 
+    let decoded;
     try {
       decoded = jwt.verify(token, secret);
     } catch (err) {
       if (err.name === "TokenExpiredError") {
-        // Authentically signed token by our secret: allow up to 30 days grace window
-        decoded = jwt.verify(token, secret, { ignoreExpiration: true });
-        const now = Math.floor(Date.now() / 1000);
-        if (decoded.exp && now - decoded.exp > 30 * 24 * 60 * 60) {
-          return res.status(401).json({
-            success: false,
-            message: "Session expired. Please log in again.",
-          });
-        }
-      } else {
         return res.status(401).json({
           success: false,
-          message: "Invalid token. Please log in again.",
+          message: "Session expired. Please log in again.",
         });
       }
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token. Please log in again.",
+      });
     }
 
     req.user = decoded;
+    // Normalise _id / id for downstream controller consistency
     if (decoded.id && !req.user._id) req.user._id = decoded.id;
     if (decoded._id && !req.user.id) req.user.id = decoded._id;
 
     next();
   } catch (error) {
+    console.error("auth middleware error:", error);
     return res.status(401).json({
       success: false,
       message: "Invalid or expired token. Please log in again.",
@@ -65,7 +68,7 @@ exports.auth = async (req, res, next) => {
   }
 };
 
-// isStudent middleware
+// ================ IS STUDENT ================
 exports.isStudent = async (req, res, next) => {
   try {
     let role = req.user?.accountType?.toLowerCase();
@@ -89,7 +92,7 @@ exports.isStudent = async (req, res, next) => {
   }
 };
 
-// isInstructor middleware
+// ================ IS INSTRUCTOR ================
 exports.isInstructor = async (req, res, next) => {
   try {
     let role = req.user?.accountType?.toLowerCase();
@@ -113,7 +116,7 @@ exports.isInstructor = async (req, res, next) => {
   }
 };
 
-// isAdmin middleware
+// ================ IS ADMIN ================
 exports.isAdmin = async (req, res, next) => {
   try {
     let role = req.user?.accountType?.toLowerCase();
@@ -136,4 +139,3 @@ exports.isAdmin = async (req, res, next) => {
     });
   }
 };
-

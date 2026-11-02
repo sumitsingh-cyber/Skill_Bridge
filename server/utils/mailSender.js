@@ -3,24 +3,12 @@ const { Resend } = require("resend");
 require("dotenv").config();
 
 const htmlToText = (html = "") =>
-  html.replace(/<style[\s\S]*?<\/style>/gi, " ")
+  html
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
     .replace(/<script[\s\S]*?<\/script>/gi, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-
-const isGmailHost = (host = "") => host.toLowerCase().includes("gmail");
-const isBrevoLogin = (user = "") => user.toLowerCase().includes("smtp-brevo.com");
-const isBadSenderAddress = (email = "") =>
-  !email || email.toLowerCase().includes("smtp-brevo.com");
-
-const normalizePassword = (host, password) => {
-  if (!password) {
-    return password;
-  }
-
-  return isGmailHost(host) ? password.replace(/\s+/g, "") : password;
-};
 
 const getMailInput = (emailOrOptions, title, body) => {
   if (typeof emailOrOptions === "object" && emailOrOptions !== null) {
@@ -31,7 +19,6 @@ const getMailInput = (emailOrOptions, title, body) => {
       text: emailOrOptions.text,
     };
   }
-
   return {
     to: emailOrOptions,
     subject: title,
@@ -39,8 +26,40 @@ const getMailInput = (emailOrOptions, title, body) => {
   };
 };
 
+const sendWithBrevoApi = async ({ to, subject, html, apiKey, from }) => {
+  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "api-key": apiKey,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: "SkillBridge", email: from },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
+    }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.message || `Brevo API error ${response.status}`);
+  }
+
+  console.log("Email sent via Brevo API | To:", to, "| MessageId:", data?.messageId);
+
+  return {
+    provider: "brevo",
+    messageId: data?.messageId,
+    accepted: [to],
+    rejected: [],
+  };
+};
+
 const sendWithResend = async ({ to, subject, html, text, from, apiKey }) => {
-  const resend = new Resend(apiKey || process.env.RESEND_API_KEY || "re_fL4mQ468_6T3tSFQv9jFLSVydTdLtBx1k");
+  const resend = new Resend(apiKey);
 
   const { data, error } = await resend.emails.send({
     from: `SkillBridge <${from}>`,
@@ -54,85 +73,32 @@ const sendWithResend = async ({ to, subject, html, text, from, apiKey }) => {
     throw new Error(error.message || "Resend failed to send email");
   }
 
-  console.log("============== EMAIL DEBUG ==============");
-  console.log("Provider: Resend");
-  console.log("To:", to);
-  console.log("Message ID:", data?.id);
-  console.log("=========================================");
+  console.log("Email sent via Resend | To:", to, "| MessageId:", data?.id);
 
   return {
     provider: "resend",
     messageId: data?.id,
     accepted: [to],
     rejected: [],
-    response: "Queued by Resend",
   };
-};
-
-const sendWithBrevoApi = async ({ to, subject, html, apiKey, from }) => {
-  const axios = require("axios");
-
-  const response = await axios.post(
-    "https://api.brevo.com/v3/smtp/email",
-    {
-      sender: {
-        name: "SkillBridge",
-        email: from || "ankitsingh91040@gmail.com",
-      },
-      to: [
-        {
-          email: to,
-        },
-      ],
-      subject,
-      htmlContent: html,
-    },
-    {
-      headers: {
-        accept: "application/json",
-        "api-key": apiKey,
-        "content-type": "application/json",
-      },
-    }
-  );
-
-  console.log("============== EMAIL DEBUG ==============");
-  console.log("Provider: Brevo API");
-  console.log("To:", to);
-  console.log("Message ID:", response.data?.messageId);
-  console.log("=========================================");
-
-  return {
-    provider: "brevo",
-    messageId: response.data?.messageId,
-    accepted: [to],
-    rejected: [],
-    response: "Sent via Brevo API",
-  };
-};
-
-const createSmtpTransporter = () => {
-  const host = "smtp.gmail.com";
-  const port = 465;
-  const user = "ankitsingh91040@gmail.com";
-  const pass = "jdennusvmwnfchjb";
-
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: true,
-    auth: {
-      user,
-      pass,
-    },
-    logger: process.env.MAIL_DEBUG === "true",
-    debug: process.env.MAIL_DEBUG === "true",
-    transactionLog: process.env.MAIL_DEBUG === "true",
-  });
 };
 
 const sendWithSmtp = async ({ to, subject, html, text, from }) => {
-  const transporter = createSmtpTransporter();
+  const host = process.env.MAIL_HOST;
+  const port = parseInt(process.env.MAIL_PORT, 10) || 587;
+  const user = process.env.MAIL_USER;
+  const pass = process.env.MAIL_PASS;
+
+  if (!host || !user || !pass) {
+    throw new Error("SMTP configuration incomplete — MAIL_HOST, MAIL_USER, MAIL_PASS required");
+  }
+
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
 
   const info = await transporter.sendMail({
     from: `"SkillBridge" <${from}>`,
@@ -140,60 +106,32 @@ const sendWithSmtp = async ({ to, subject, html, text, from }) => {
     subject,
     text: text || htmlToText(html),
     html,
-    envelope: {
-      from,
-      to,
-    },
   });
 
-  const accepted = info.accepted || [];
-  const rejected = info.rejected || [];
+  console.log("Email sent via SMTP | To:", to, "| MessageId:", info.messageId);
 
-  console.log("============== EMAIL DEBUG ==============");
-  console.log("Provider: SMTP");
-  console.log("Accepted:", accepted);
-  console.log("Rejected:", rejected);
-  console.log("Pending:", info.pending || []);
-  console.log("Envelope:", info.envelope);
-  console.log("Response:", info.response);
-  console.log("Message ID:", info.messageId);
-  console.log("=========================================");
-
-  if (accepted.length === 0 || rejected.length > 0) {
-    throw new Error(
-      `SMTP did not accept the email. Accepted: ${accepted.join(", ") || "none"}; Rejected: ${rejected.join(", ") || "none"}`
-    );
-  }
-
-  return {
-    ...info,
-    provider: "smtp",
-  };
+  return { ...info, provider: "smtp" };
 };
 
-const getBrevoKey = () => {
-  const base64 = "eyJhcGlfa2V5IjoieGtleXNpYi05OTEzNWY3ZmEyNzIzMDc0ODMyMWQ5OTQ1NWUzYWE1NjE5ODQwNGVmNzA0N2NkZTViZWMwMTRjMGZhMjNkOTBkLXZLYm5MWnN1RU9IbVdiOEYifQ==";
-  try {
-    const jsonStr = Buffer.from(base64, "base64").toString("utf-8");
-    return JSON.parse(jsonStr).api_key;
-  } catch (err) {
-    return null;
-  }
-};
-
+/**
+ * mailSender(emailOrOptions, title?, body?)
+ * 
+ * Provider priority: Brevo HTTP API (Port 443 HTTPS) -> Resend API -> SMTP
+ * All credentials are read strictly from environment variables.
+ */
 const mailSender = async (emailOrOptions, title, body) => {
   const input = getMailInput(emailOrOptions, title, body);
   const from = process.env.MAIL_FROM || "ankitsingh91040@gmail.com";
-  const brevoApiKey = process.env.BREVO_API_KEY || getBrevoKey();
-  const resendApiKey = process.env.RESEND_API_KEY || "re_fL4mQ468_6T3tSFQv9jFLSVydTdLtBx1k";
+  const brevoApiKey = process.env.BREVO_API_KEY || process.env.BREVO_KEY;
+  const resendApiKey = process.env.RESEND_API_KEY;
   const resendFrom = process.env.RESEND_FROM || "onboarding@resend.dev";
 
   if (!input.to || !input.subject || !input.html) {
-    throw new Error("Email requires to, subject, and html fields.");
+    throw new Error("Email requires 'to', 'subject', and 'html' fields.");
   }
 
-  // 1. Try sending via Brevo HTTP API (allows sending to ANY email address, runs over port 443 HTTPS)
-  if (brevoApiKey) {
+  // 1. Brevo HTTP API (HTTPS port 443 — reliable on Render free tier)
+  if (brevoApiKey && from) {
     try {
       return await sendWithBrevoApi({
         to: input.to,
@@ -203,12 +141,12 @@ const mailSender = async (emailOrOptions, title, body) => {
         from,
       });
     } catch (brevoError) {
-      console.error("Brevo API send failed:", brevoError.response ? brevoError.response.data : brevoError.message);
+      console.error("Brevo API failed:", brevoError.message);
     }
   }
 
-  // 2. Try sending via Resend API (HTTPS port 443 - allowed on Render free tier)
-  if (resendApiKey && resendFrom) {
+  // 2. Resend API (HTTPS port 443)
+  if (resendApiKey) {
     try {
       return await sendWithResend({
         to: input.to,
@@ -219,24 +157,20 @@ const mailSender = async (emailOrOptions, title, body) => {
         apiKey: resendApiKey,
       });
     } catch (resendError) {
-      console.error("Resend API send failed:", resendError.message);
+      console.error("Resend API failed:", resendError.message);
     }
   }
 
-  // 3. Fallback to SMTP (might time out on Render free tier due to port blocks)
-  try {
-    return await sendWithSmtp({ ...input, from });
-  } catch (error) {
-    const message = error?.message || "Unknown email sending error";
-
-    if (/535|BadCredentials|Username and Password not accepted/i.test(message)) {
-      throw new Error(
-        "SMTP login failed. For Gmail use a 16-character App Password; for Brevo use the SMTP login and SMTP key, not the API key."
-      );
+  // 3. SMTP fallback
+  if (from && process.env.MAIL_HOST) {
+    try {
+      return await sendWithSmtp({ ...input, from });
+    } catch (smtpError) {
+      console.error("SMTP fallback failed:", smtpError.message);
     }
-
-    throw error;
   }
+
+  throw new Error("All configured email delivery providers failed.");
 };
 
 module.exports = mailSender;

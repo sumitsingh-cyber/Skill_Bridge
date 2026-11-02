@@ -1,18 +1,17 @@
-const User =require("../models/User");
-const OTP=require("../models/OTP");
+const User = require("../models/User");
+const OTP = require("../models/OTP");
 const bcrypt = require("bcryptjs");
-const jwt =require("jsonwebtoken");
+const jwt = require("jsonwebtoken");
 const { randomInt } = require("crypto");
-const Profile =require("../models/Profile");
-const mailSender=require("../utils/mailSender");
-const { passwordUpdated }=require("../mail/templates/passwordUpdate");
+const Profile = require("../models/Profile");
+const mailSender = require("../utils/mailSender");
+const { passwordUpdated } = require("../mail/templates/passwordUpdate");
 require("dotenv").config();
 const { otpTemplate } = require("../mail/templates/emailVerificationTemplate");
 
-// send otp
+// ================ SEND OTP ================
 exports.sendOTP = async (req, res) => {
   try {
-    // fetch email from body
     const email = req.body.email?.trim().toLowerCase();
 
     if (!email) {
@@ -22,9 +21,8 @@ exports.sendOTP = async (req, res) => {
       });
     }
 
-    // check if user already exists
+    // Check if user already exists
     const checkUserPresent = await User.findOne({ email });
-
     if (checkUserPresent) {
       return res.status(409).json({
         success: false,
@@ -32,8 +30,8 @@ exports.sendOTP = async (req, res) => {
       });
     }
 
+    // 60-second resend cooldown
     const recentOtpRequest = await OTP.findOne({ email }).sort({ createdAt: -1 });
-
     if (recentOtpRequest && Date.now() - recentOtpRequest.createdAt.getTime() < 60 * 1000) {
       return res.status(429).json({
         success: false,
@@ -44,37 +42,28 @@ exports.sendOTP = async (req, res) => {
     const otp = String(randomInt(100000, 1000000));
     const hashedOtp = await bcrypt.hash(otp, 10);
 
-    console.log("OTP generated for", email);
-
+    // Delete previous OTPs for this email
     await OTP.deleteMany({ email });
 
-    // save otp
-    const otpRecord = await OTP.create({ email, otp: hashedOtp });
-
-    console.log("OTP saved to DB");
+    // Save hashed OTP
+    await OTP.create({ email, otp: hashedOtp });
 
     const htmlContent = otpTemplate(otp);
 
-    // send email
+    // Send email — if it fails, return a real error, NEVER expose the OTP
     try {
-      await mailSender(
-        {
-          to: email,
-          subject: "Your SkillBridge verification code",
-          html: htmlContent,
-        }
-      );
-
-      console.log("OTP Email Sent Successfully");
-
+      await mailSender({
+        to: email,
+        subject: "Your SkillBridge verification code",
+        html: htmlContent,
+      });
     } catch (mailError) {
-      console.log("Failed to send OTP email:", mailError.message);
-      console.log(`[SKILLBRIDGE OTP FOR ${email}]:`, otp);
-
-      return res.status(200).json({
-        success: true,
-        message: `Verification code generated. (Check email or use OTP: ${otp})`,
-        fallbackOtp: otp,
+      console.error("Failed to send OTP email:", mailError.message);
+      // Clean up the OTP record since we couldn't deliver it
+      await OTP.deleteMany({ email });
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send verification email. Please try again later.",
       });
     }
 
@@ -84,136 +73,136 @@ exports.sendOTP = async (req, res) => {
     });
 
   } catch (error) {
-
-    console.log(error);
-
+    console.error("sendOTP error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Something went wrong. Please try again.",
     });
   }
 };
 
 
+// ================ SIGNUP ================
+exports.signUp = async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email: rawEmail,
+      password,
+      confirmPassword,
+      accountType,
+      contactNumber,
+      otp,
+    } = req.body;
 
- // signup
-    exports.signUp=async(req,res)=>{
+    const email = rawEmail?.trim().toLowerCase();
 
-        try{
-            //data fatch from request ki body
-        const {
-            firstName,
-            lastName,
-            email: rawEmail,
-            password,
-            confirmPassword,
-            accountType,
-            contactNumber,
-            otp
-        }=req.body;
-
-        const email = rawEmail?.trim().toLowerCase();
-
-        //validate krlo
-        if(!firstName || !lastName || !email|| !password || !confirmPassword || !otp){
-            return res.status(403).json({
-                success:false,
-                message:"All feilds are required",
-            })
-        }
-
-        //2 password match krlo 
-        if(password !== confirmPassword){
-            return res.status(400).json({
-                success:false,
-                message:"Password and ConfirmPassword mismatch, Please try again",
-            });
-        }
-
-        //check user already exist or not
-        const existingUser =await User.findOne({email});
-        if(existingUser){
-            return res.status(400).json({
-                success:false,
-                message:"User is already registered",
-            });
-        }
-
-        // find most recent otp 
-         const recentOtp = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1);
-
-        console.log(recentOtp);
-        
-        //validation otp
-        if(recentOtp.length == 0){
-            //OTP not found
-            return res.status(400).json({
-                success:false,
-                message:"OTP Not Found or Expired. Please request a new OTP.",
-            })
-        }
-         const isOtpValid = await bcrypt.compare(String(otp), recentOtp[0].otp);
-
-         if (!isOtpValid) {
-      return res.status(400).json({
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password || !confirmPassword || !otp) {
+      return res.status(403).json({
         success: false,
-        message: "Invalid OTP",
+        message: "All fields are required",
       });
     }
 
-        // hash password
-        const hashedPassword =await  bcrypt.hash(password,10);
-
-        // Normalize account type
-        let normalizedAccountType = "Student";
-        if (accountType && accountType.toLowerCase() === "instructor") {
-          normalizedAccountType = "Instructor";
-        } else if (accountType && accountType.toLowerCase() === "admin") {
-          normalizedAccountType = "Admin";
-        }
-
-        // entry create in db
-        const profileDetails=await Profile.create({
-            gender:null,
-            dateOfBirth:null,
-            about:null,
-            contactNumber:null,
-        });
-
-        const user =await User.create({
-            firstName,
-            lastName,
-            email,
-            password:hashedPassword,
-            contactNumber,
-            accountType: normalizedAccountType,
-            additionalDetails:profileDetails._id,
-            Image:`https://api.dicebear.com/5.x/initials/svg?seed=${firstName}%20${lastName}`,
-        })
-
-        await OTP.deleteMany({ email });
-        
-        // return response
-        return res.status(200).json({
-            success:true,
-            message:"User is registered Successfully",
-            user,
-        });
+    // Password match
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Password and Confirm Password do not match. Please try again.",
+      });
     }
 
-        catch(error){
-            console.log(error); 
-            return res.status(500).json({
-                success:false,
-                message:"User cannot be registered .Please try again",
-            });
-        }
-    };
+    // Password strength — minimum 8 chars, at least one number
+    if (password.length < 8 || !/\d/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters and contain at least one number",
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "User is already registered",
+      });
+    }
+
+    // Find most recent OTP
+    const recentOtp = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1);
+
+    if (recentOtp.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP not found or expired. Please request a new OTP.",
+      });
+    }
+
+    const isOtpValid = await bcrypt.compare(String(otp), recentOtp[0].otp);
+    if (!isOtpValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid OTP. Please try again.",
+      });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Normalize account type — ADMIN registration is NOT allowed via the public signup API.
+    // Admins must be provisioned server-side via environment variables only.
+    let normalizedAccountType = "Student";
+    if (accountType && accountType.toLowerCase() === "instructor") {
+      normalizedAccountType = "Instructor";
+    }
+
+    // Create profile
+    const profileDetails = await Profile.create({
+      gender: null,
+      dateOfBirth: null,
+      about: null,
+      contactNumber: null,
+    });
+
+    const user = await User.create({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+      contactNumber,
+      accountType: normalizedAccountType,
+      additionalDetails: profileDetails._id,
+      Image: `https://api.dicebear.com/5.x/initials/svg?seed=${firstName}%20${lastName}`,
+    });
+
+    // Invalidate the OTP after successful registration
+    await OTP.deleteMany({ email });
+
+    // Strip sensitive fields from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    delete userResponse.token;
+
+    return res.status(200).json({
+      success: true,
+      message: "User registered successfully",
+      user: userResponse,
+    });
+
+  } catch (error) {
+    console.error("signUp error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "User cannot be registered. Please try again.",
+    });
+  }
+};
 
 
-
-//login
-
+// ================ LOGIN ================
 exports.login = async (req, res) => {
   try {
     const { email: rawEmail, password } = req.body;
@@ -222,7 +211,7 @@ exports.login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required, Please try again",
+        message: "All fields are required. Please try again.",
       });
     }
 
@@ -231,55 +220,64 @@ exports.login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "User is not registered, please signup first",
+        message: "User is not registered. Please sign up first.",
       });
     }
 
-    if (await bcrypt.compare(password, user.password)) {
-      const payload = {
-        email: user.email,
-        id: user._id,
-        accountType: user.accountType,
-      };
-
-      const token = jwt.sign(payload, process.env.JWT_SECRET || "manish", {
-        expiresIn: "30d",
-      });
-
-      user.token = token;
-      user.password = undefined;
-
-      const option = {
-        expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-      };
-
-      return res.cookie("Token", token, option).status(200).json({
-        success: true,
-        token,
-        user,
-        message: "Logged in successfully",
-      });
-
-    } else {
+    if (!(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({
         success: false,
         message: "Password is incorrect",
       });
     }
 
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error("CRITICAL: JWT_SECRET environment variable is not set");
+      return res.status(500).json({
+        success: false,
+        message: "Server configuration error. Please contact support.",
+      });
+    }
+
+    const payload = {
+      email: user.email,
+      id: user._id,
+      accountType: user.accountType,
+    };
+
+    const token = jwt.sign(payload, jwtSecret, {
+      expiresIn: "30d",
+    });
+
+    user.token = token;
+    user.password = undefined;
+
+    const cookieOptions = {
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    };
+
+    return res.cookie("Token", token, cookieOptions).status(200).json({
+      success: true,
+      token,
+      user,
+      message: "Logged in successfully",
+    });
+
   } catch (error) {
-    console.log(error);
+    console.error("login error:", error);
     return res.status(500).json({
       success: false,
-      message: "Login Failure, Please try again",
+      message: "Login failed. Please try again.",
     });
   }
 };
 
 
+// ================ CHANGE PASSWORD ================
 exports.changePassword = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -289,6 +287,13 @@ exports.changePassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
+      });
+    }
+
+    if (newPassword.length < 8 || !/\d/.test(newPassword)) {
+      return res.status(400).json({
+        success: false,
+        message: "New password must be at least 8 characters and contain at least one number",
       });
     }
 
@@ -306,11 +311,15 @@ exports.changePassword = async (req, res) => {
     user.password = hashedPassword;
     await user.save();
 
-    await mailSender(
-      user.email,
-      "Password Updated Successfully",
-      passwordUpdated(user.email)
-    );
+    try {
+      await mailSender(
+        user.email,
+        "Password Updated Successfully",
+        passwordUpdated(user.email)
+      );
+    } catch (mailErr) {
+      console.error("Password change notification email failed:", mailErr.message);
+    }
 
     return res.status(200).json({
       success: true,
@@ -318,6 +327,7 @@ exports.changePassword = async (req, res) => {
     });
 
   } catch (error) {
+    console.error("changePassword error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to change password",

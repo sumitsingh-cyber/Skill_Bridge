@@ -1,103 +1,143 @@
-  
-  const User =require("../models/User");
-  const mailSender =require("../utils/mailSender");
-  const bcrypt=require("bcryptjs");
-  const crypto=require("crypto");
+const User = require("../models/User");
+const mailSender = require("../utils/mailSender");
+const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
-   //resetPasswordToken
-  exports.resetPasswordToken =async(req,res) =>{
-      try{
-           //get email from body
-   const email =req.body.email;
-   //check user for this eami ,eamil validation
-   const user =await User.findOne({email: email});
-   if(!user){
-      return res.json({success:false,
-         message:"Your Email is not registered with us",
-      })
-   }
-   //generate token
-   const token =crypto.randomUUID();
-   //update user by adding token and expiration time
-   const updateDetails =await User.findOneAndUpdate(
-                                 {email:email},
-                                 {
-                                    token:token,
-                                    resetPasswordExpires:Date.now()  + 5*60*1000,
-                                 },
-                                 {new:true},// updated documents
-                              ) 
-   //create url
-    const frontendUrl = process.env.FRONTEND_URL || req.headers.origin || "http://localhost:5173";
-    const url = `${frontendUrl}/update-password/${token}`;
-   //send email containing the url
-   await mailSender(email,
-             "Password Reset Link",
-             `Password Reset Link: ${url}`
-   );
-   //return response
-   return res.json({
-      success:true,
-      message:"Email sent successfully, please check email and change pawd",
-   })
+// ================ RESET PASSWORD TOKEN ================
+exports.resetPasswordToken = async (req, res) => {
+  try {
+    const email = req.body.email?.trim().toLowerCase();
 
-  
-      }catch(error){
-         console.log(error);
-         return res.status(500).json({
-            success:false,
-            message:"Something went wrong while sending reset pwd",
-         })
-      }
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Return a generic message regardless of whether the email is registered
+    // to prevent email enumeration attacks
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "If that email address is registered, you will receive a reset link shortly.",
+      });
+    }
+
+    // Generate a cryptographically secure token
+    const token = crypto.randomBytes(32).toString("hex");
+
+    // Store token and 5-minute expiry
+    await User.findOneAndUpdate(
+      { email },
+      {
+        token,
+        resetPasswordExpires: new Date(Date.now() + 5 * 60 * 1000),
+      },
+      { new: true }
+    );
+
+    // Build reset URL using the configured frontend origin
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      (process.env.NODE_ENV === "production"
+        ? "https://skill-bridge-lemon.vercel.app"
+        : "http://localhost:5173");
+
+    const resetUrl = `${frontendUrl}/update-password/${token}`;
+
+    await mailSender(
+      email,
+      "SkillBridge — Password Reset Link",
+      `<p>You requested a password reset for your SkillBridge account.</p>
+       <p>Click the link below to reset your password. This link expires in 5 minutes.</p>
+       <a href="${resetUrl}">${resetUrl}</a>
+       <p>If you did not request this, you can safely ignore this email.</p>`
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "If that email address is registered, you will receive a reset link shortly.",
+    });
+
+  } catch (error) {
+    console.error("resetPasswordToken error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong while processing your request.",
+    });
   }
-   
-   //resetPassword
-   exports.resetPassword = async(req,res) =>{
-      try{
-         //data fatch
-         const {password, confirmPassword,token}=req.body;
-         //validation
-         if(password !==confirmPassword){
-            return res.json({
-               success:false,
-               message:"Password not matching",
-            });
-         }
-         //get userdatails from db using token 
-         const userDetails =await User.findOne({token :token});
-         //if no entry - invlid token
-         if(!userDetails){
-            return res.json({
-               success:false,
-               message:"Token is invalid",
-            });
-         }
-         //token time check 
-         if(userDetails.resetPasswordExpires < Date.now()){
-            return res.json({
-               success:false,
-               message:"Token is expired, please regenerate your token",
-            });
-         }
-         //hash pwd
-          const hashedPassword= await bcrypt.hash(password,10);
-         //pasword update 
-         await User.findOneAndUpdate(
-            {token:token},
-            {password:hashedPassword},
-            {new:true},
-         );
-         //return response
-         return res.status(200).json({
-            success:true,
-            message:"Password reset successful",
-         });
-      }catch(error){
-         console.log(error);
-         return res.status(500).json({
-            success:false,
-            message:"Reset password Failed",
-         });
+};
 
-      }
-   }
+// ================ RESET PASSWORD ================
+exports.resetPassword = async (req, res) => {
+  try {
+    const { password, confirmPassword, token } = req.body;
+
+    if (!password || !confirmPassword || !token) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match",
+      });
+    }
+
+    if (password.length < 8 || !/\d/.test(password)) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters and contain at least one number",
+      });
+    }
+
+    // Look up user by reset token
+    const userDetails = await User.findOne({ token });
+
+    if (!userDetails) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token is invalid or has already been used.",
+      });
+    }
+
+    // Check token expiry
+    if (userDetails.resetPasswordExpires < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token has expired. Please request a new password reset link.",
+      });
+    }
+
+    // Hash and save new password, then invalidate the reset token
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await User.findOneAndUpdate(
+      { token },
+      {
+        password: hashedPassword,
+        token: null,                    // Invalidate — token is single-use
+        resetPasswordExpires: null,
+      },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successful. You can now log in with your new password.",
+    });
+
+  } catch (error) {
+    console.error("resetPassword error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Password reset failed. Please try again.",
+    });
+  }
+};

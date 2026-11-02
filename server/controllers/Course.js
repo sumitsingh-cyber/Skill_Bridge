@@ -167,7 +167,7 @@ exports.deleteCourse = async (req, res) => {
 
     if (
       course.instructor.toString() !== req.user.id &&
-      req.user.role !== "Admin"
+      req.user.accountType !== "Admin"
     ) {
       return res.status(403).json({
         success: false,
