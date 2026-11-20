@@ -65,7 +65,7 @@ export default function CourseInformationForm() {
       v.coursePrice !== course.price ||
       v.courseTags?.toString() !== course.tag.toString() ||
       v.courseBenefits !== course.whatYouWillLearn ||
-      v.courseCategory !== course.category._id ||
+      v.courseCategory !== (course.category?._id || course.category) ||
       v.courseRequirements?.toString() !== course.instructions.toString() ||
       v.courseImage !== course.thumbnail
     )
@@ -126,8 +126,9 @@ export default function CourseInformationForm() {
         dispatch(setCourse(result))
         dispatch(setStep(2))
       }
-    } catch {
-      toast.error("Something went wrong")
+    } catch (err) {
+      console.error("COURSE SUBMIT ERROR:", err)
+      toast.error(err?.response?.data?.message || err?.message || "Something went wrong")
     } finally {
       setLoading(false)
     }
@@ -232,6 +233,28 @@ export default function CourseInformationForm() {
         errors={errors}
       />
 
+      {/* BENEFITS OF THE COURSE */}
+      <div className="flex flex-col space-y-2">
+        <label className="text-sm text-gray-100">
+          Benefits of the course <sup className="text-pink-400">*</sup>
+        </label>
+        <textarea
+          {...register("courseBenefits", { required: true })}
+          placeholder="Enter Benefits of the course"
+          className="
+            min-h-32.5 rounded-md bg-gray-800 px-3 py-2 text-gray-100
+            outline-none placeholder-gray-400
+            transition-all duration-200
+            focus:ring-2 focus:ring-yellow-400/40
+          "
+        />
+        {errors.courseBenefits && (
+          <span className="text-xs text-pink-400">
+            Benefits of the course are required
+          </span>
+        )}
+      </div>
+
       <Upload
         name="courseImage"
         label="Course Thumbnail"
@@ -241,8 +264,19 @@ export default function CourseInformationForm() {
         editData={editCourse ? course.thumbnail : null}
       />
 
+      {/* REQUIREMENTS / INSTRUCTIONS */}
+      <RequirementsField
+        name="courseRequirements"
+        label="Requirements/Instructions"
+        register={register}
+        setValue={setValue}
+        errors={errors}
+        getValues={getValues}
+      />
+
       <div className="flex justify-end gap-3">
         <IconBtn
+          type="submit"
           disabled={loading}
           text={!editCourse ? "Next" : "Save Changes"}
           customClasses="transition-all duration-300 hover:scale-[1.02]"

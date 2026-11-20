@@ -128,37 +128,51 @@ export const createRating = async (data) => {
 // ================= INSTRUCTOR ========================
 // =====================================================
 
-export const addCourseDetails = async (data) => {
+export const addCourseDetails = async (data, token) => {
   let result = null
+  const toastId = toast.loading("Creating Course...")
   try {
     const response = await apiConnector(
       "POST",
       CREATE_COURSE_API,
-      data
+      data,
+      {
+        "Content-Type": "multipart/form-data",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      }
     )
-    if (!response?.data?.success) throw new Error("Create failed")
+    if (!response?.data?.success) throw new Error(response?.data?.message || "Create failed")
     toast.success("Course Created")
     result = response.data.data
   } catch (error) {
-    toast.error(error.message)
+    console.error("CREATE COURSE API ERROR............", error)
+    toast.error(error?.response?.data?.message || error.message || "Failed to create course")
   }
+  toast.dismiss(toastId)
   return result
 }
 
-export const editCourseDetails = async (data) => {
+export const editCourseDetails = async (data, token) => {
   let result = null
+  const toastId = toast.loading("Updating Course...")
   try {
     const response = await apiConnector(
       "PUT",
       EDIT_COURSE_API,
-      data
+      data,
+      {
+        "Content-Type": "multipart/form-data",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      }
     )
-    if (!response?.data?.success) throw new Error("Update failed")
+    if (!response?.data?.success) throw new Error(response?.data?.message || "Update failed")
     toast.success("Course Updated")
     result = response.data.data
   } catch (error) {
-    toast.error(error.message)
+    console.error("EDIT COURSE API ERROR............", error)
+    toast.error(error?.response?.data?.message || error.message || "Failed to update course")
   }
+  toast.dismiss(toastId)
   return result
 }
 

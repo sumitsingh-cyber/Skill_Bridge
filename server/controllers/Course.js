@@ -20,11 +20,15 @@ exports.createCourse = async (req, res) => {
     } = req.body
 
     const thumbnail = req.files?.thumbnailImage
+    const effectiveWhatYouWillLearn =
+      whatYouWillLearn && whatYouWillLearn !== "undefined"
+        ? whatYouWillLearn
+        : courseDescription
 
     if (
       !courseName ||
       !courseDescription ||
-      !whatYouWillLearn ||
+      !effectiveWhatYouWillLearn ||
       !price ||
       !category ||
       !thumbnail
@@ -76,7 +80,7 @@ exports.createCourse = async (req, res) => {
       courseName,
       courseDescription,
       instructor: instructorId,
-      whatYouWillLearn,
+      whatYouWillLearn: effectiveWhatYouWillLearn,
       price: Number(price),
       category: categoryDetails._id,
       tag: parsedTags,
