@@ -102,9 +102,9 @@ export default function SubSectionModal({
 
     if (result) {
       dispatch(setCourse(result)) // ✅ FIX
+      setModalData(null)
     }
 
-    setModalData(null)
     setLoading(false)
   }
 
@@ -179,8 +179,9 @@ export default function SubSectionModal({
           {!view && (
             <div className="flex justify-end">
               <IconBtn
+                type="submit"
                 disabled={loading}
-                text={loading ? "Loading..." : edit ? "Save Changes" : "Save"}
+                text={loading ? "Saving..." : edit ? "Save Changes" : "Save"}
               />
             </div>
           )}

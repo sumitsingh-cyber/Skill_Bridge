@@ -252,37 +252,51 @@ export const deleteSection = async (data) => {
 // ================= SUB SECTION ========================
 // =====================================================
 
-export const createSubSection = async (data) => {
+export const createSubSection = async (data, token) => {
   let result = null
+  const toastId = toast.loading("Uploading lecture video...")
   try {
     const response = await apiConnector(
       "POST",
       CREATE_SUBSECTION_API,
-      data
+      data,
+      {
+        "Content-Type": "multipart/form-data",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      }
     )
-    if (!response?.data?.success) throw new Error("Failed")
+    if (!response?.data?.success) throw new Error(response?.data?.message || "Failed")
     toast.success("Lecture Added")
     result = response.data.data
   } catch (error) {
-    toast.error(error.message)
+    console.error("CREATE SUBSECTION ERROR:", error)
+    toast.error(error?.response?.data?.message || error.message || "Failed to add lecture")
   }
+  toast.dismiss(toastId)
   return result
 }
 
-export const updateSubSection = async (data) => {
+export const updateSubSection = async (data, token) => {
   let result = null
+  const toastId = toast.loading("Updating lecture...")
   try {
     const response = await apiConnector(
       "PUT",
       UPDATE_SUBSECTION_API,
-      data
+      data,
+      {
+        "Content-Type": "multipart/form-data",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      }
     )
-    if (!response?.data?.success) throw new Error("Failed")
+    if (!response?.data?.success) throw new Error(response?.data?.message || "Failed")
     toast.success("Lecture Updated")
     result = response.data.data
   } catch (error) {
-    toast.error(error.message)
+    console.error("UPDATE SUBSECTION ERROR:", error)
+    toast.error(error?.response?.data?.message || error.message || "Failed to update lecture")
   }
+  toast.dismiss(toastId)
   return result
 }
 

@@ -49,7 +49,7 @@ export default function NestedView({ handleChangeEditSectionName }) {
 
   const handleDeleteSubSection = async (subSectionId, sectionId) => {
     const result = await deleteSubSection(
-      { subSectionId, sectionId },
+      { subSectionId, sectionId, courseId: course._id },
       token
     )
 

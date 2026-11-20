@@ -7,14 +7,15 @@ export default function IconBtn({
   outline = false,
   customClasses,
   className,
-  type = "button",
+  type,
 }) {
   const handleClick = onClick || onclick
   const extraClasses = customClasses || className || ""
+  const btnType = type || (handleClick ? "button" : "submit")
 
   return (
     <button
-      type={type}
+      type={btnType}
       disabled={disabled}
       onClick={handleClick}
       className={`
