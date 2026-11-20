@@ -221,7 +221,10 @@ exports.deleteCourse = async (req, res) => {
 exports.showAllCourses = async (req, res) => {
   try {
     const courses = await Course.find(
-      { status: "Published" },
+      {
+        status: "Published",
+        courseContent: { $exists: true, $not: { $size: 0 } },
+      },
       {
         courseName: true,
         price: true,

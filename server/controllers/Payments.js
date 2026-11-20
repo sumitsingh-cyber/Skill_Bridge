@@ -72,6 +72,13 @@ exports.capturePayment = async (req, res) => {
     // Create Razorpay order — fail hard if credentials are missing or invalid
     let order;
     try {
+      // Check credentials before instantiating
+      if (!process.env.RAZORPAY_KEY || !process.env.RAZORPAY_SECRET) {
+        return res.status(503).json({
+          success: false,
+          message: "Payment is not configured on the server. Please contact the administrator.",
+        });
+      }
       order = await getInstance().orders.create({
         amount: totalAmount * 100, // convert to paise
         currency: "INR",

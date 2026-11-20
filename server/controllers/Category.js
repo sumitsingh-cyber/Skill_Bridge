@@ -96,15 +96,28 @@ exports.categoryPageDetails = async (req, res) => {
       })
       .exec()
 
-    // 3️⃣ Most Selling Courses
+    // 3️⃣ Most Selling Courses (only courses that have content)
     const mostSellingCourses = await Course.find({
       status: "Published",
+      courseContent: { $exists: true, $not: { $size: 0 } },
     })
       .sort({ studentsEnrolled: -1 })
       .limit(10)
       .populate("instructor")
       .populate("ratingAndReviews")
       .exec()
+
+    // Filter populated category courses to only include those with content
+    if (selectedCategory?.courses) {
+      selectedCategory.courses = selectedCategory.courses.filter(
+        (c) => c.courseContent && c.courseContent.length > 0
+      )
+    }
+    if (differentCategory?.courses) {
+      differentCategory.courses = differentCategory.courses.filter(
+        (c) => c.courseContent && c.courseContent.length > 0
+      )
+    }
 
     return res.status(200).json({
       success: true,

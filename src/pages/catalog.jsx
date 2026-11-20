@@ -157,56 +157,64 @@ const Catalog = () => {
       </div>
 
       {/* ================= SECTION 1: COURSES TO GET STARTED ================= */}
-      <div className="mx-auto w-full max-w-maxContent px-4 py-12 md:py-16">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-richblack-800 pb-4">
-          <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-richblack-5">
-              Courses to get you started
-            </h2>
-            <p className="text-xs md:text-sm text-richblack-400 mt-1">
-              Top curated learning paths in {selectedCategory?.name}
-            </p>
+      {sortedCourses.length > 0 ? (
+        <div className="mx-auto w-full max-w-maxContent px-4 py-12 md:py-16">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-richblack-800 pb-4">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-richblack-5">
+                Courses to get you started
+              </h2>
+              <p className="text-xs md:text-sm text-richblack-400 mt-1">
+                Top curated learning paths in {selectedCategory?.name}
+              </p>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex items-center rounded-xl bg-richblack-800 p-1 border border-richblack-700/60 self-start sm:self-auto">
+              <button
+                onClick={() => setActiveTab("popular")}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                  activeTab === "popular"
+                    ? "bg-yellow-50 text-richblack-900 shadow-md"
+                    : "text-richblack-200 hover:text-richblack-5"
+                }`}
+              >
+                Most Popular
+              </button>
+              <button
+                onClick={() => setActiveTab("new")}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                  activeTab === "new"
+                    ? "bg-yellow-50 text-richblack-900 shadow-md"
+                    : "text-richblack-200 hover:text-richblack-5"
+                }`}
+              >
+                Newest
+              </button>
+              <button
+                onClick={() => setActiveTab("all")}
+                className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
+                  activeTab === "all"
+                    ? "bg-yellow-50 text-richblack-900 shadow-md"
+                    : "text-richblack-200 hover:text-richblack-5"
+                }`}
+              >
+                All
+              </button>
+            </div>
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex items-center rounded-xl bg-richblack-800 p-1 border border-richblack-700/60 self-start sm:self-auto">
-            <button
-              onClick={() => setActiveTab("popular")}
-              className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
-                activeTab === "popular"
-                  ? "bg-yellow-50 text-richblack-900 shadow-md"
-                  : "text-richblack-200 hover:text-richblack-5"
-              }`}
-            >
-              Most Popular
-            </button>
-            <button
-              onClick={() => setActiveTab("new")}
-              className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
-                activeTab === "new"
-                  ? "bg-yellow-50 text-richblack-900 shadow-md"
-                  : "text-richblack-200 hover:text-richblack-5"
-              }`}
-            >
-              Newest
-            </button>
-            <button
-              onClick={() => setActiveTab("all")}
-              className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-200 ${
-                activeTab === "all"
-                  ? "bg-yellow-50 text-richblack-900 shadow-md"
-                  : "text-richblack-200 hover:text-richblack-5"
-              }`}
-            >
-              All
-            </button>
+          <div className="pt-6">
+            <CourseSlider Courses={sortedCourses} />
           </div>
         </div>
-
-        <div className="pt-6">
-          <CourseSlider Courses={sortedCourses} />
+      ) : (
+        <div className="mx-auto w-full max-w-maxContent px-4 py-10 text-center">
+          <p className="text-richblack-400 text-sm">
+            No courses available in this category yet. Check back soon!
+          </p>
         </div>
-      </div>
+      )}
 
       {/* ================= SECTION 2: OTHER TOP CATEGORY ================= */}
       {differentCategory && differentCourses.length > 0 && (

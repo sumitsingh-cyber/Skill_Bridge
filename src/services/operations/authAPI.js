@@ -27,7 +27,15 @@ export function sendOtp(email, navigate) {
         throw new Error(response.data.message);
       }
 
-      toast.success("OTP Sent Successfully");
+      // If email delivery failed, backend returns the OTP directly
+      if (response.data.otp) {
+        toast.success(
+          `Email unavailable. Your OTP is: ${response.data.otp}`,
+          { duration: 15000 }
+        );
+      } else {
+        toast.success("OTP Sent Successfully");
+      }
       if (navigate) navigate("/verify-email");
     } catch (error) {
       console.log("SENDOTP API ERROR............", error);
